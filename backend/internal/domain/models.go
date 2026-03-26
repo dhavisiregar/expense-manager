@@ -1,0 +1,130 @@
+package domain
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type Category struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Color     string    `json:"color"`
+	Icon      string    `json:"icon"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Expense struct {
+	ID          uuid.UUID `json:"id"`
+	Title       string    `json:"title"`
+	Amount      float64   `json:"amount"`
+	CategoryID  uuid.UUID `json:"category_id"`
+	Category    *Category `json:"category,omitempty"`
+	Tags        []string  `json:"tags"`
+	Date        time.Time `json:"date"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type CreateExpenseInput struct {
+	Title       string    `json:"title"`
+	Amount      float64   `json:"amount"`
+	CategoryID  uuid.UUID `json:"category_id"`
+	Tags        []string  `json:"tags"`
+	Date        time.Time `json:"date"`
+	Description string    `json:"description"`
+}
+
+type UpdateExpenseInput struct {
+	Title       *string    `json:"title"`
+	Amount      *float64   `json:"amount"`
+	CategoryID  *uuid.UUID `json:"category_id"`
+	Tags        []string   `json:"tags"`
+	Date        *time.Time `json:"date"`
+	Description *string    `json:"description"`
+}
+
+type CreateCategoryInput struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
+	Icon  string `json:"icon"`
+}
+
+type UpdateCategoryInput struct {
+	Name  *string `json:"name"`
+	Color *string `json:"color"`
+	Icon  *string `json:"icon"`
+}
+
+type ExpenseFilter struct {
+	CategoryID *uuid.UUID
+	StartDate  *time.Time
+	EndDate    *time.Time
+	Tags       []string
+	Page       int
+	PageSize   int
+}
+
+type DashboardSummary struct {
+	TotalExpenses   float64           `json:"total_expenses"`
+	MonthlyExpenses float64           `json:"monthly_expenses"`
+	ExpenseCount    int               `json:"expense_count"`
+	TotalIncome     float64           `json:"total_income"`
+	MonthlyIncome   float64           `json:"monthly_income"`
+	Balance         float64           `json:"balance"`
+	MonthlyBalance  float64           `json:"monthly_balance"`
+	ByCategory      []CategorySummary `json:"by_category"`
+	MonthlyTrend    []MonthlyTrend    `json:"monthly_trend"`
+	RecentExpenses  []Expense         `json:"recent_expenses"`
+}
+
+type CategorySummary struct {
+	Category *Category `json:"category"`
+	Total    float64   `json:"total"`
+	Count    int       `json:"count"`
+	Percent  float64   `json:"percent"`
+}
+
+type MonthlyTrend struct {
+	Month  string  `json:"month"`
+	Year   int     `json:"year"`
+	Total  float64 `json:"total"`
+	Income float64 `json:"income"`
+	Count  int     `json:"count"`
+}
+
+type Income struct {
+	ID          uuid.UUID `json:"id"`
+	Title       string    `json:"title"`
+	Amount      float64   `json:"amount"`
+	Source      string    `json:"source"`
+	Date        time.Time `json:"date"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type CreateIncomeInput struct {
+	Title       string    `json:"title"`
+	Amount      float64   `json:"amount"`
+	Source      string    `json:"source"`
+	Date        time.Time `json:"date"`
+	Description string    `json:"description"`
+}
+
+type UpdateIncomeInput struct {
+	Title       *string    `json:"title"`
+	Amount      *float64   `json:"amount"`
+	Source      *string    `json:"source"`
+	Date        *time.Time `json:"date"`
+	Description *string    `json:"description"`
+}
+
+type IncomeFilter struct {
+	StartDate *time.Time
+	EndDate   *time.Time
+	Page      int
+	PageSize  int
+}
