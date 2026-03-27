@@ -127,7 +127,7 @@ export function DashboardClient({
 
   if (loading)
     return (
-      <div style={{ padding: "32px" }}>
+      <div className="page-content" style={{ padding: "32px" }}>
         <Spinner />
       </div>
     );
@@ -167,6 +167,7 @@ export function DashboardClient({
       />
 
       <div
+        className="page-grid-3"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
@@ -210,6 +211,7 @@ export function DashboardClient({
         />
       </div>
       <div
+        className="page-grid-3"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
@@ -241,6 +243,7 @@ export function DashboardClient({
       </div>
 
       <div
+        className="chart-row"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 340px",

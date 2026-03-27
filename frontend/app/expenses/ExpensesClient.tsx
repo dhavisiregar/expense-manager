@@ -27,6 +27,7 @@ import {
   EmptyState,
   Spinner,
 } from "@/components/ui";
+import { useToast } from "@/components/ui/Toast";
 import { formatCurrency, formatDate, formatDateInput } from "@/lib/utils";
 import {
   Plus,
@@ -37,7 +38,6 @@ import {
   ChevronRight,
   Search,
 } from "lucide-react";
-import { successAlert, errorAlert, confirmDelete } from "@/lib/alert";
 
 function ExpenseForm({
   categories,
@@ -98,6 +98,7 @@ function ExpenseForm({
         error={errors.title}
       />
       <div
+        className="form-row-2"
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}
       >
         <Input
@@ -170,6 +171,7 @@ export function ExpensesClient({
   categories?: Category[];
   initialMeta: PaginationMeta | null;
 }) {
+  const toast = useToast();
   const [expenses, setExpenses] = useState(initialExpenses);
   const [categories, setCategories] = useState<Category[]>(
     initialCategories ?? [],
@@ -192,7 +194,7 @@ export function ExpensesClient({
         setMeta(expRes.meta || null);
         setCategories(catRes.data || []);
       })
-      .catch(() => errorAlert("Failed to load data"))
+      .catch(() => toast.error("Failed to load data"))
       .finally(() => setLoadingInit(false));
   }, []);
 
@@ -207,7 +209,7 @@ export function ExpensesClient({
         setExpenses(res.data || []);
         setMeta(res.meta || null);
       } catch {
-        errorAlert("Failed to load expenses");
+        toast.error("Failed to load expenses");
       }
     });
   };
@@ -217,10 +219,10 @@ export function ExpensesClient({
     try {
       await createExpense(input);
       setShowAdd(false);
-      successAlert("Expense added successfully");
+      toast.success("Expense added successfully");
       refresh(1);
     } catch (e: any) {
-      errorAlert(e.message || "Failed to add expense");
+      toast.error(e.message || "Failed to add expense");
     } finally {
       setSubmitting(false);
     }
@@ -240,26 +242,24 @@ export function ExpensesClient({
       };
       await updateExpense(editTarget.id, upd);
       setEditTarget(null);
-      successAlert("Expense updated");
+      toast.success("Expense updated");
       refresh();
     } catch (e: any) {
-      errorAlert(e.message || "Failed to update expense");
+      toast.error(e.message || "Failed to update expense");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    const confirmed = await confirmDelete("Delete this expense?");
-    if (!confirmed) return;
-
+    if (!confirm("Delete this expense?")) return;
     setDeletingId(id);
     try {
       await deleteExpense(id);
       setExpenses((prev) => prev.filter((e) => e.id !== id));
-      successAlert("Expense deleted");
+      toast.success("Expense deleted");
     } catch (e: any) {
-      errorAlert(e.message || "Failed to delete expense");
+      toast.error(e.message || "Failed to delete expense");
     } finally {
       setDeletingId(null);
     }
@@ -273,7 +273,7 @@ export function ExpensesClient({
 
   if (loadingInit)
     return (
-      <div style={{ padding: "32px" }}>
+      <div className="page-content" style={{ padding: "32px" }}>
         <Spinner />
       </div>
     );
@@ -442,7 +442,7 @@ export function ExpensesClient({
                       </Badge>
                     )}
                   </td>
-                  <td style={{ padding: "13px 16px" }}>
+                  <td className="col-tags" style={{ padding: "13px 16px" }}>
                     <div
                       style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}
                     >
@@ -452,6 +452,7 @@ export function ExpensesClient({
                     </div>
                   </td>
                   <td
+                    className="col-date"
                     style={{
                       padding: "13px 16px",
                       fontSize: "13px",

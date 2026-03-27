@@ -25,6 +25,7 @@ import {
   EmptyState,
   Spinner,
 } from "@/components/ui";
+import { useToast } from "@/components/ui/Toast";
 import { formatCurrency, formatDate, formatDateInput } from "@/lib/utils";
 import {
   Plus,
@@ -35,7 +36,6 @@ import {
   ChevronRight,
   Search,
 } from "lucide-react";
-import { confirmDelete, errorAlert, successAlert } from "@/lib/alert";
 
 const INCOME_SOURCES = [
   "Salary",
@@ -93,6 +93,7 @@ function IncomeForm({
         error={errors.title}
       />
       <div
+        className="form-row-2"
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}
       >
         <Input
@@ -148,6 +149,7 @@ export function IncomeClient({
   initialIncomes: Income[];
   initialMeta: PaginationMeta | null;
 }) {
+  const toast = useToast();
   const [incomes, setIncomes] = useState(initialIncomes);
   const [meta, setMeta] = useState(initialMeta);
   const [page, setPage] = useState(1);
@@ -165,7 +167,7 @@ export function IncomeClient({
         setIncomes(res.data || []);
         setMeta(res.meta || null);
       })
-      .catch(() => errorAlert("Failed to load income"))
+      .catch(() => toast.error("Failed to load income"))
       .finally(() => setLoadingInit(false));
   }, []);
 
@@ -176,7 +178,7 @@ export function IncomeClient({
         setIncomes(res.data || []);
         setMeta(res.meta || null);
       } catch {
-        errorAlert("Failed to load income");
+        toast.error("Failed to load income");
       }
     });
   };
@@ -186,10 +188,10 @@ export function IncomeClient({
     try {
       await createIncome(input);
       setShowAdd(false);
-      successAlert("Income added successfully");
+      toast.success("Income added successfully");
       refresh(1);
     } catch (e: any) {
-      errorAlert(e.message || "Failed to add income");
+      toast.error(e.message || "Failed to add income");
     } finally {
       setSubmitting(false);
     }
@@ -208,26 +210,24 @@ export function IncomeClient({
       };
       await updateIncome(editTarget.id, upd);
       setEditTarget(null);
-      successAlert("Income updated");
+      toast.success("Income updated");
       refresh();
     } catch (e: any) {
-      errorAlert(e.message || "Failed to update income");
+      toast.error(e.message || "Failed to update income");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    const confirmed = await confirmDelete("Delete this income entry?");
-    if (!confirmed) return;
-
+    if (!confirm("Delete this income entry?")) return;
     setDeletingId(id);
     try {
       await deleteIncome(id);
       setIncomes((prev) => prev.filter((i) => i.id !== id));
-      successAlert("Income deleted");
+      toast.success("Income deleted");
     } catch (e: any) {
-      errorAlert(e.message || "Failed to delete income");
+      toast.error(e.message || "Failed to delete income");
     } finally {
       setDeletingId(null);
     }
@@ -246,7 +246,7 @@ export function IncomeClient({
 
   if (loadingInit)
     return (
-      <div style={{ padding: "32px" }}>
+      <div className="page-content" style={{ padding: "32px" }}>
         <Spinner />
       </div>
     );
@@ -266,8 +266,10 @@ export function IncomeClient({
       {/* Summary strip */}
       {filtered.length > 0 && (
         <div
+          className="page-grid-2"
           style={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
             gap: "16px",
             marginBottom: "20px",
           }}
@@ -437,6 +439,7 @@ export function IncomeClient({
                     <Badge color="var(--color-success)">{inc.source}</Badge>
                   </td>
                   <td
+                    className="col-date"
                     style={{
                       padding: "13px 16px",
                       fontSize: "13px",

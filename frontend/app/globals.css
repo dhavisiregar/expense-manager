@@ -18,3 +18,71 @@
   --color-danger: #ff5c7c;
   --color-warning: #ffb547;
 }
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+
+/* ── Responsive grid helpers ─────────────────────── */
+@media (max-width: 768px) {
+  /* Page padding tighter on mobile */
+  .page-content {
+    padding: 20px 16px !important;
+  }
+
+  /* 3-col and 2-col grids collapse to 1 col */
+  .page-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .page-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Chart row stacks vertically */
+  .chart-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Form row (amount + date) stacks */
+  .form-row-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hide tags column in expense table */
+  .col-tags {
+    display: none !important;
+  }
+
+  /* Modal full width */
+  .modal-inner {
+    margin: 0 8px !important;
+    max-width: 100% !important;
+  }
+
+  /* Stat card font smaller */
+  .stat-value {
+    font-size: 18px !important;
+  }
+
+  /* Page header stack on mobile */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: "12px" !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Also hide date column on very small screens */
+  .col-date {
+    display: none !important;
+  }
+
+  /* Category grid 1 col */
+  .cat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

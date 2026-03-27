@@ -272,6 +272,7 @@ export function Modal({
       onClick={onClose}
     >
       <div
+        className="modal-inner"
         style={{
           background: "var(--color-surface)",
           border: "1px solid var(--color-border)",
@@ -280,6 +281,8 @@ export function Modal({
           width: "100%",
           maxWidth: "480px",
           margin: "0 16px",
+          maxHeight: "90vh",
+          overflowY: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -379,11 +382,14 @@ export function PageHeader({
 }) {
   return (
     <div
+      className="page-header"
       style={{
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
         marginBottom: "28px",
+        flexWrap: "wrap",
+        gap: "12px",
       }}
     >
       <div>

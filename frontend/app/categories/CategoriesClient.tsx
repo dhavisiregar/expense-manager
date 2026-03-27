@@ -329,7 +329,7 @@ export function CategoriesClient({
 
   if (loading)
     return (
-      <div style={{ padding: "32px" }}>
+      <div className="page-content" style={{ padding: "32px" }}>
         <Spinner />
       </div>
     );
@@ -350,7 +350,7 @@ export function CategoriesClient({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
             gap: "14px",
           }}
         >
@@ -379,7 +379,7 @@ export function CategoriesClient({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
             gap: "14px",
           }}
         >
