@@ -113,7 +113,7 @@ export default function AuthPage() {
               letterSpacing: "-0.4px",
             }}
           >
-            ExpenseOS
+            DuitFlow
           </h1>
           <p
             style={{
