@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
-import { Expense, ExpenseFilter, PaginationMeta } from "@/types";
+import {
+  Expense,
+  ExpenseFilter,
+  PaginationMeta,
+  CreateExpenseInput,
+  UpdateExpenseInput,
+} from "@/types";
 import {
   getExpenses,
   createExpense,
   updateExpense,
   deleteExpense,
-  CreateExpenseInput,
-  UpdateExpenseInput,
 } from "@/lib/api";
 
 interface UseExpensesReturn {
