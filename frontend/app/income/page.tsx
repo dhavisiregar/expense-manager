@@ -10,5 +10,5 @@ export default async function IncomePage() {
     meta = res.meta;
   } catch {}
 
-  return <IncomeClient initialIncomes={incomes} initialMeta={meta} />;
+  return <IncomeClient initialIncomes={[]} initialMeta={null} />;
 }

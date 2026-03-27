@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Category, CreateCategoryInput } from "@/types";
 import {
   createCategory,
@@ -255,11 +255,20 @@ export function CategoriesClient({
   initialCategories: Category[];
 }) {
   const [categories, setCategories] = useState(initialCategories);
+  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState<Category | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Fetch on mount — client-side so JWT is available
+  useEffect(() => {
+    getCategories()
+      .then((res) => setCategories(res.data || []))
+      .catch(() => errorAlert("Failed to load categories"))
+      .finally(() => setLoading(false));
+  }, []);
 
   const refresh = () => {
     startTransition(async () => {
@@ -277,9 +286,7 @@ export function CategoriesClient({
     try {
       await createCategory(input);
       setShowAdd(false);
-
       await successAlert(`Category "${input.name}" created`);
-
       refresh();
     } catch (e: any) {
       errorAlert(e.message || "Failed to create category");
@@ -290,14 +297,11 @@ export function CategoriesClient({
 
   const handleUpdate = async (input: CreateCategoryInput) => {
     if (!editTarget) return;
-
     setSubmitting(true);
     try {
       await updateCategory(editTarget.id, input);
       setEditTarget(null);
-
       await successAlert("Category updated");
-
       refresh();
     } catch (e: any) {
       errorAlert(e.message || "Failed to update category");
@@ -310,16 +314,11 @@ export function CategoriesClient({
     const result = await confirmDelete(
       `Delete "${name}"? Expenses using this category will be affected.`,
     );
-
     if (!result.isConfirmed) return;
-
     setDeletingId(id);
-
     try {
       await deleteCategory(id);
-
       setCategories((prev) => prev.filter((c) => c.id !== id));
-
       successAlert(`Category "${name}" deleted`);
     } catch (e: any) {
       errorAlert(e.message || "Failed to delete category");
@@ -327,6 +326,13 @@ export function CategoriesClient({
       setDeletingId(null);
     }
   };
+
+  if (loading)
+    return (
+      <div style={{ padding: "32px" }}>
+        <Spinner />
+      </div>
+    );
 
   return (
     <div style={{ padding: "32px" }}>

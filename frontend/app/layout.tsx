@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { AuthProvider } from "@/components/ui/AuthProvider";
+import { AuthGuard } from "@/components/ui/AuthGuard";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { AppShell } from "@/components/layout/AppShell";
 
 export const metadata: Metadata = {
   title: "DuitFlow",
@@ -35,15 +37,17 @@ export default function RootLayout({
           fontFamily: "var(--font-sans)",
           margin: 0,
           minHeight: "100vh",
-          display: "flex",
         }}
       >
-        <ToastProvider>
-          <Sidebar />
-          <main style={{ flex: 1, overflowY: "auto", minHeight: "100vh" }}>
-            <ErrorBoundary>{children}</ErrorBoundary>
-          </main>
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <ErrorBoundary>
+              <AuthGuard>
+                <AppShell>{children}</AppShell>
+              </AuthGuard>
+            </ErrorBoundary>
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

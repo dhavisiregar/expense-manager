@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   Category,
   CreateExpenseInput,
@@ -13,6 +13,7 @@ import {
   deleteExpense,
   getExpenses,
   updateExpense,
+  getCategories,
 } from "@/lib/api";
 import {
   Button,
@@ -52,13 +53,20 @@ function ExpenseForm({
   const [form, setForm] = useState<CreateExpenseInput>({
     title: initial?.title || "",
     amount: initial?.amount || (0 as any),
-    category_id: initial?.category_id || (categories[0]?.id ?? ""),
+    category_id: initial?.category_id || "",
     tags: initial?.tags || [],
     date: initial?.date
       ? formatDateInput(initial.date)
       : formatDateInput(new Date().toISOString()),
     description: initial?.description || "",
   });
+
+  // Set default category once categories load
+  useEffect(() => {
+    if (!form.category_id && categories.length > 0) {
+      setForm((f) => ({ ...f, category_id: categories[0].id }));
+    }
+  }, [categories]);
   const [tagInput, setTagInput] = useState(initial?.tags?.join(", ") || "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -155,14 +163,17 @@ function ExpenseForm({
 
 export function ExpensesClient({
   initialExpenses,
-  categories,
+  categories: initialCategories,
   initialMeta,
 }: {
   initialExpenses: Expense[];
-  categories: Category[];
+  categories?: Category[];
   initialMeta: PaginationMeta | null;
 }) {
   const [expenses, setExpenses] = useState(initialExpenses);
+  const [categories, setCategories] = useState<Category[]>(
+    initialCategories ?? [],
+  );
   const [meta, setMeta] = useState(initialMeta);
   const [page, setPage] = useState(1);
   const [filterCat, setFilterCat] = useState("");
@@ -172,6 +183,18 @@ export function ExpensesClient({
   const [isPending, startTransition] = useTransition();
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingInit, setLoadingInit] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getExpenses({ page: 1, page_size: 20 }), getCategories()])
+      .then(([expRes, catRes]) => {
+        setExpenses(expRes.data || []);
+        setMeta(expRes.meta || null);
+        setCategories(catRes.data || []);
+      })
+      .catch(() => errorAlert("Failed to load data"))
+      .finally(() => setLoadingInit(false));
+  }, []);
 
   const refresh = (p = page, catId = filterCat) => {
     startTransition(async () => {
@@ -181,11 +204,10 @@ export function ExpensesClient({
           page_size: 20,
           category_id: catId || undefined,
         });
-
         setExpenses(res.data || []);
         setMeta(res.meta || null);
-      } catch (e: any) {
-        errorAlert(e?.message || "Failed to load expenses");
+      } catch {
+        errorAlert("Failed to load expenses");
       }
     });
   };
@@ -195,9 +217,7 @@ export function ExpensesClient({
     try {
       await createExpense(input);
       setShowAdd(false);
-
-      await successAlert("Expense added successfully");
-
+      successAlert("Expense added successfully");
       refresh(1);
     } catch (e: any) {
       errorAlert(e.message || "Failed to add expense");
@@ -208,7 +228,6 @@ export function ExpensesClient({
 
   const handleUpdate = async (input: CreateExpenseInput) => {
     if (!editTarget) return;
-
     setSubmitting(true);
     try {
       const upd: UpdateExpenseInput = {
@@ -219,12 +238,9 @@ export function ExpensesClient({
         date: input.date,
         description: input.description,
       };
-
       await updateExpense(editTarget.id, upd);
       setEditTarget(null);
-
-      await successAlert("Expense updated successfully");
-
+      successAlert("Expense updated");
       refresh();
     } catch (e: any) {
       errorAlert(e.message || "Failed to update expense");
@@ -234,19 +250,13 @@ export function ExpensesClient({
   };
 
   const handleDelete = async (id: string) => {
-    const result = await confirmDelete(
-      `Delete "${name}"? Expenses using this category will be affected.`,
-    );
-
-    if (!result.isConfirmed) return;
+    const confirmed = await confirmDelete("Delete this expense?");
+    if (!confirmed) return;
 
     setDeletingId(id);
-
     try {
       await deleteExpense(id);
-
       setExpenses((prev) => prev.filter((e) => e.id !== id));
-
       successAlert("Expense deleted");
     } catch (e: any) {
       errorAlert(e.message || "Failed to delete expense");
@@ -260,6 +270,13 @@ export function ExpensesClient({
         e.title.toLowerCase().includes(search.toLowerCase()),
       )
     : expenses;
+
+  if (loadingInit)
+    return (
+      <div style={{ padding: "32px" }}>
+        <Spinner />
+      </div>
+    );
 
   return (
     <div style={{ padding: "32px" }}>

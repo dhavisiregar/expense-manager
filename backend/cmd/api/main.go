@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dhavisiregar/expense-manager/internal/handler"
+	appmiddleware "github.com/dhavisiregar/expense-manager/internal/middleware"
 	"github.com/dhavisiregar/expense-manager/internal/repository"
 	"github.com/dhavisiregar/expense-manager/internal/service"
 	"github.com/dhavisiregar/expense-manager/pkg/database"
@@ -58,15 +59,17 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Route("/expenses", expenseHandler.Routes())
-		r.Route("/categories", categoryHandler.Routes())
-		r.Route("/incomes", incomeHandler.Routes())
-	})
-
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, `{"status":"ok"}`)
+	})
+
+	// Protected routes — all require a valid Supabase JWT
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(appmiddleware.Auth)
+		r.Route("/expenses", expenseHandler.Routes())
+		r.Route("/categories", categoryHandler.Routes())
+		r.Route("/incomes", incomeHandler.Routes())
 	})
 
 	port := os.Getenv("PORT")

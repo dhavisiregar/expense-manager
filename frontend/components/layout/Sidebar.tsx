@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Receipt,
   Tag,
-  TrendingDown,
   TrendingUp,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/components/ui/AuthProvider";
+import { useToast } from "@/components/ui/Toast";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +22,18 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+  const toast = useToast();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out");
+    router.replace("/auth");
+  };
+
+  // Initials avatar from email
+  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "??";
 
   return (
     <aside
@@ -30,7 +44,6 @@ export function Sidebar() {
         borderRight: "1px solid var(--color-border)",
         display: "flex",
         flexDirection: "column",
-        padding: "0",
         flexShrink: 0,
       }}
     >
@@ -55,17 +68,12 @@ export function Sidebar() {
             justifyContent: "center",
           }}
         >
-          <TrendingDown size={18} color="#fff" />
+          <TrendingUp size={18} color="#fff" />
         </div>
         <span
-          style={{
-            fontWeight: 600,
-            fontSize: "15px",
-            letterSpacing: "-0.3px",
-            color: "var(--color-text)",
-          }}
+          style={{ fontWeight: 600, fontSize: "15px", letterSpacing: "-0.3px" }}
         >
-          ExpenseOS
+          DuitFlow
         </span>
       </div>
 
@@ -142,16 +150,75 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Footer */}
+      {/* User + Sign out */}
       <div
         style={{
-          padding: "16px 20px",
+          padding: "14px 16px",
           borderTop: "1px solid var(--color-border)",
-          fontSize: "11px",
-          color: "var(--color-text-muted)",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
         }}
       >
-        v1.0.0
+        <div
+          style={{
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            background: "var(--color-accent-dim)",
+            border: "1px solid var(--color-accent)44",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "var(--color-accent)",
+            flexShrink: 0,
+          }}
+        >
+          {initials}
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: "12px",
+              fontWeight: 500,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {user?.email}
+          </p>
+        </div>
+        <button
+          onClick={handleSignOut}
+          title="Sign out"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--color-text-muted)",
+            padding: "6px",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "6px",
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "var(--color-danger)";
+            e.currentTarget.style.background = "rgba(255,0,0,0.08)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "var(--color-text-muted)";
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <LogOut size={15} />
+        </button>
       </div>
     </aside>
   );

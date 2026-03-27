@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   Income,
   CreateIncomeInput,
@@ -25,7 +25,6 @@ import {
   EmptyState,
   Spinner,
 } from "@/components/ui";
-import { useToast } from "@/components/ui/Toast";
 import { formatCurrency, formatDate, formatDateInput } from "@/lib/utils";
 import {
   Plus,
@@ -36,6 +35,7 @@ import {
   ChevronRight,
   Search,
 } from "lucide-react";
+import { confirmDelete, errorAlert, successAlert } from "@/lib/alert";
 
 const INCOME_SOURCES = [
   "Salary",
@@ -148,7 +148,6 @@ export function IncomeClient({
   initialIncomes: Income[];
   initialMeta: PaginationMeta | null;
 }) {
-  const toast = useToast();
   const [incomes, setIncomes] = useState(initialIncomes);
   const [meta, setMeta] = useState(initialMeta);
   const [page, setPage] = useState(1);
@@ -158,6 +157,17 @@ export function IncomeClient({
   const [isPending, startTransition] = useTransition();
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingInit, setLoadingInit] = useState(true);
+
+  useEffect(() => {
+    getIncomes({ page: 1, page_size: 20 })
+      .then((res) => {
+        setIncomes(res.data || []);
+        setMeta(res.meta || null);
+      })
+      .catch(() => errorAlert("Failed to load income"))
+      .finally(() => setLoadingInit(false));
+  }, []);
 
   const refresh = (p = page) => {
     startTransition(async () => {
@@ -166,7 +176,7 @@ export function IncomeClient({
         setIncomes(res.data || []);
         setMeta(res.meta || null);
       } catch {
-        toast.error("Failed to load income");
+        errorAlert("Failed to load income");
       }
     });
   };
@@ -176,10 +186,10 @@ export function IncomeClient({
     try {
       await createIncome(input);
       setShowAdd(false);
-      toast.success("Income added successfully");
+      successAlert("Income added successfully");
       refresh(1);
     } catch (e: any) {
-      toast.error(e.message || "Failed to add income");
+      errorAlert(e.message || "Failed to add income");
     } finally {
       setSubmitting(false);
     }
@@ -198,24 +208,26 @@ export function IncomeClient({
       };
       await updateIncome(editTarget.id, upd);
       setEditTarget(null);
-      toast.success("Income updated");
+      successAlert("Income updated");
       refresh();
     } catch (e: any) {
-      toast.error(e.message || "Failed to update income");
+      errorAlert(e.message || "Failed to update income");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this income entry?")) return;
+    const confirmed = await confirmDelete("Delete this income entry?");
+    if (!confirmed) return;
+
     setDeletingId(id);
     try {
       await deleteIncome(id);
       setIncomes((prev) => prev.filter((i) => i.id !== id));
-      toast.success("Income deleted");
+      successAlert("Income deleted");
     } catch (e: any) {
-      toast.error(e.message || "Failed to delete income");
+      errorAlert(e.message || "Failed to delete income");
     } finally {
       setDeletingId(null);
     }
@@ -231,6 +243,13 @@ export function IncomeClient({
 
   // Summary totals from current page
   const pageTotal = filtered.reduce((sum, i) => sum + i.amount, 0);
+
+  if (loadingInit)
+    return (
+      <div style={{ padding: "32px" }}>
+        <Spinner />
+      </div>
+    );
 
   return (
     <div style={{ padding: "32px" }}>

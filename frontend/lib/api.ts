@@ -3,31 +3,45 @@ import {
   Category,
   CreateCategoryInput,
   CreateExpenseInput,
+  CreateIncomeInput,
   DashboardSummary,
   Expense,
   ExpenseFilter,
+  Income,
+  IncomeFilter,
   PaginationMeta,
   UpdateExpenseInput,
+  UpdateIncomeInput,
 } from "@/types";
+import { supabase } from "@/lib/supabase";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+
+async function getToken(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not authenticated");
+  return token;
+}
 
 async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<{ data: T; meta?: PaginationMeta }> {
+  const token = await getToken();
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     ...options,
   });
 
   const json: APIResponse<T> = await res.json();
-
   if (!json.success || !res.ok) {
     throw new Error(json.error || "An unexpected error occurred");
   }
-
   return { data: json.data as T, meta: json.meta };
 }
 
@@ -98,13 +112,6 @@ export async function deleteCategory(id: string) {
 }
 
 // ─── Incomes ──────────────────────────────────────────────────
-import type {
-  Income,
-  CreateIncomeInput,
-  UpdateIncomeInput,
-  IncomeFilter,
-} from "@/types";
-
 export async function getIncomes(filter: IncomeFilter = {}) {
   const params = new URLSearchParams();
   if (filter.start_date) params.set("start_date", filter.start_date);

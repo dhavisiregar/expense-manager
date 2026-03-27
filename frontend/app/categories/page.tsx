@@ -8,5 +8,5 @@ export default async function CategoriesPage() {
     categories = res.data || [];
   } catch {}
 
-  return <CategoriesClient initialCategories={categories} />;
+  return <CategoriesClient initialCategories={[]} />;
 }

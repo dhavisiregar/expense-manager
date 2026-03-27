@@ -10,5 +10,5 @@ export default async function DashboardPage() {
     // Will show empty state
   }
 
-  return <DashboardClient summary={summary} />;
+  return <DashboardClient summary={null} />;
 }

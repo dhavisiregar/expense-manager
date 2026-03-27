@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -14,7 +15,7 @@ import {
 } from "recharts";
 import { DashboardSummary } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Card, PageHeader, EmptyState } from "@/components/ui";
+import { Card, PageHeader, EmptyState, Spinner } from "@/components/ui";
 import {
   TrendingDown,
   TrendingUp,
@@ -25,6 +26,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { getDashboard } from "@/lib/api";
+import { errorAlert } from "@/lib/alert";
 
 function StatCard({
   label,
@@ -103,10 +106,32 @@ function StatCard({
 }
 
 export function DashboardClient({
-  summary,
+  summary: initialSummary,
 }: {
   summary: DashboardSummary | null;
 }) {
+  const [summary, setSummary] = useState<DashboardSummary | null>(
+    initialSummary,
+  );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getDashboard()
+      .then((res) => setSummary(res.data))
+      .catch(() => {
+        setSummary(null);
+        errorAlert("Failed to load dashboard");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading)
+    return (
+      <div style={{ padding: "32px" }}>
+        <Spinner />
+      </div>
+    );
+
   if (!summary) {
     return (
       <div style={{ padding: "32px" }}>
@@ -123,15 +148,12 @@ export function DashboardClient({
   const monthlyTrend = summary.monthly_trend ?? [];
   const byCategory = summary.by_category ?? [];
   const recentExpenses = summary.recent_expenses ?? [];
-
   const trendData = monthlyTrend.map((t) => ({
     name: `${t.month} ${t.year}`,
     expenses: t.total,
     income: t.income,
   }));
-
   const pieColors = byCategory.map((c) => c.category?.color || "#6366f1");
-
   const balanceColor =
     (summary.monthly_balance ?? 0) >= 0
       ? "var(--color-success)"
@@ -144,7 +166,6 @@ export function DashboardClient({
         subtitle="Your financial overview at a glance"
       />
 
-      {/* Stat Cards — 2 rows: income+expense on top, balance on bottom */}
       <div
         style={{
           display: "grid",
@@ -174,7 +195,7 @@ export function DashboardClient({
             <Wallet
               size={18}
               color={
-                summary.balance >= 0
+                (summary.balance ?? 0) >= 0
                   ? "var(--color-success)"
                   : "var(--color-danger)"
               }
@@ -182,13 +203,12 @@ export function DashboardClient({
           }
           sub="All time"
           accent={
-            summary.balance >= 0
+            (summary.balance ?? 0) >= 0
               ? "var(--color-success)"
               : "var(--color-danger)"
           }
         />
       </div>
-
       <div
         style={{
           display: "grid",
@@ -220,7 +240,6 @@ export function DashboardClient({
         />
       </div>
 
-      {/* Charts row */}
       <div
         style={{
           display: "grid",
@@ -229,7 +248,6 @@ export function DashboardClient({
           marginBottom: "24px",
         }}
       >
-        {/* Area Chart — income vs expenses */}
         <Card>
           <p style={{ margin: "0 0 20px", fontWeight: 600, fontSize: "14px" }}>
             Income vs Expenses (6 months)
@@ -298,8 +316,6 @@ export function DashboardClient({
             />
           )}
         </Card>
-
-        {/* Pie Chart — expenses by category */}
         <Card>
           <p style={{ margin: "0 0 16px", fontWeight: 600, fontSize: "14px" }}>
             Expenses by Category
@@ -383,7 +399,6 @@ export function DashboardClient({
         </Card>
       </div>
 
-      {/* Recent Expenses */}
       <Card>
         <div
           style={{

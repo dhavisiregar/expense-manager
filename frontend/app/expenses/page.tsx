@@ -19,10 +19,6 @@ export default async function ExpensesPage() {
   }
 
   return (
-    <ExpensesClient
-      initialExpenses={expenses}
-      categories={categories}
-      initialMeta={meta}
-    />
+    <ExpensesClient initialExpenses={[]} categories={[]} initialMeta={null} />
   );
 }
