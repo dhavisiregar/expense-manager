@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import {
-  Category,
-  CreateExpenseInput,
-  Expense,
-  PaginationMeta,
-  UpdateExpenseInput,
-} from "@/types";
+import { Category, CreateExpenseInput, Expense, PaginationMeta } from "@/types";
 import {
   createExpense,
   deleteExpense,
@@ -27,17 +21,18 @@ import {
   EmptyState,
   Spinner,
 } from "@/components/ui";
-import { formatCurrency, formatDate, formatDateInput } from "@/lib/utils";
+import { formatCurrency, formatDateInput } from "@/lib/utils";
 import {
   Plus,
   Pencil,
   Trash2,
   Receipt,
-  ChevronLeft,
-  ChevronRight,
   Search,
+  ChevronDown,
 } from "lucide-react";
 import { confirmDelete, errorAlert, successAlert } from "@/lib/alert";
+
+const DAY_PAGE_SIZE = 5;
 
 function ExpenseForm({
   categories,
@@ -159,6 +154,42 @@ function ExpenseForm({
   );
 }
 
+function groupByDate(
+  expenses: Expense[],
+): { date: string; items: Expense[] }[] {
+  const map = new Map<string, Expense[]>();
+  for (const exp of expenses) {
+    const key = exp.date.slice(0, 10);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(exp);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([date, items]) => ({ date, items }));
+}
+
+function dateGroupLabel(isoDate: string): string {
+  const d = new Date(isoDate + "T00:00:00");
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDay(d, today)) return "Today";
+  if (sameDay(d, yesterday)) return "Yesterday";
+
+  return d.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export function ExpensesClient({
   initialExpenses,
   categories: initialCategories,
@@ -183,8 +214,13 @@ export function ExpensesClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loadingInit, setLoadingInit] = useState(true);
 
+  // Per-date visible count: { "2026-03-31": 5, "2026-03-30": 10, ... }
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>(
+    {},
+  );
+
   useEffect(() => {
-    Promise.all([getExpenses({ page: 1, page_size: 20 }), getCategories()])
+    Promise.all([getExpenses({ page: 1, page_size: 100 }), getCategories()])
       .then(([expRes, catRes]) => {
         setExpenses(expRes.data || []);
         setMeta(expRes.meta || null);
@@ -199,11 +235,12 @@ export function ExpensesClient({
       try {
         const res = await getExpenses({
           page: p,
-          page_size: 20,
+          page_size: 100,
           category_id: catId || undefined,
         });
         setExpenses(res.data || []);
         setMeta(res.meta || null);
+        setVisibleCounts({}); // reset per-day pagination on refresh
       } catch {
         errorAlert("Failed to load expenses");
       }
@@ -249,7 +286,6 @@ export function ExpensesClient({
   const handleDelete = async (id: string) => {
     const confirmed = await confirmDelete("Delete this expense?");
     if (!confirmed) return;
-
     setDeletingId(id);
     try {
       await deleteExpense(id);
@@ -262,11 +298,23 @@ export function ExpensesClient({
     }
   };
 
+  const getVisibleCount = (date: string) =>
+    visibleCounts[date] ?? DAY_PAGE_SIZE;
+
+  const showMore = (date: string, total: number) => {
+    setVisibleCounts((prev) => ({
+      ...prev,
+      [date]: Math.min((prev[date] ?? DAY_PAGE_SIZE) + DAY_PAGE_SIZE, total),
+    }));
+  };
+
   const filtered = search
     ? expenses.filter((e) =>
         e.title.toLowerCase().includes(search.toLowerCase()),
       )
     : expenses;
+
+  const grouped = groupByDate(filtered);
 
   if (loadingInit)
     return (
@@ -284,9 +332,6 @@ export function ExpensesClient({
           .expenses-filter select { width: 100% !important; }
           .exp-col-tags { display: none !important; }
           .exp-col-category { display: none !important; }
-        }
-        @media (max-width: 480px) {
-          .exp-col-date { display: none !important; }
         }
       `}</style>
 
@@ -379,11 +424,11 @@ export function ExpensesClient({
           </div>
         </Card>
 
-        {/* Table — horizontally scrollable on mobile */}
-        <Card style={{ padding: "0", overflow: "hidden" }}>
-          {isPending ? (
-            <Spinner />
-          ) : filtered.length === 0 ? (
+        {/* Date-grouped expense list */}
+        {isPending ? (
+          <Spinner />
+        ) : grouped.length === 0 ? (
+          <Card style={{ padding: "0", overflow: "hidden" }}>
             <EmptyState
               icon={<Receipt size={36} />}
               title="No expenses found"
@@ -393,252 +438,212 @@ export function ExpensesClient({
                   : "Add your first expense to get started"
               }
             />
-          ) : (
-            <div
-              style={
-                { overflowX: "auto", WebkitOverflowScrolling: "touch" } as any
-              }
-            >
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  minWidth: "420px",
-                }}
-              >
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-                    <th
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "var(--color-text-muted)",
-                        textTransform: "uppercase" as any,
-                        letterSpacing: "0.05em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Title
-                    </th>
-                    <th
-                      className="exp-col-category"
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "var(--color-text-muted)",
-                        textTransform: "uppercase" as any,
-                        letterSpacing: "0.05em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Category
-                    </th>
-                    <th
-                      className="exp-col-tags"
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "var(--color-text-muted)",
-                        textTransform: "uppercase" as any,
-                        letterSpacing: "0.05em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Tags
-                    </th>
-                    <th
-                      className="exp-col-date"
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "var(--color-text-muted)",
-                        textTransform: "uppercase" as any,
-                        letterSpacing: "0.05em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Date
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "var(--color-text-muted)",
-                        textTransform: "uppercase" as any,
-                        letterSpacing: "0.05em",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Amount
-                    </th>
-                    <th style={{ padding: "12px 16px", width: "80px" }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((exp, i) => (
-                    <tr
-                      key={exp.id}
-                      style={{
-                        borderBottom:
-                          i < filtered.length - 1
-                            ? "1px solid var(--color-border)"
-                            : "none",
-                        opacity: deletingId === exp.id ? 0.4 : 1,
-                        transition: "opacity 0.2s, background 0.1s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background =
-                          "var(--color-surface-2)")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
-                      <td
-                        style={{
-                          padding: "13px 16px",
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          maxWidth: "160px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {exp.title}
-                      </td>
-                      <td
-                        className="exp-col-category"
-                        style={{ padding: "13px 16px" }}
-                      >
-                        {exp.category && (
-                          <Badge color={exp.category.color}>
-                            {exp.category.icon} {exp.category.name}
-                          </Badge>
-                        )}
-                      </td>
-                      <td
-                        className="exp-col-tags"
-                        style={{ padding: "13px 16px" }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "4px",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          {exp.tags?.map((tag) => (
-                            <Badge key={tag}>{tag}</Badge>
-                          ))}
-                        </div>
-                      </td>
-                      <td
-                        className="exp-col-date"
-                        style={{
-                          padding: "13px 16px",
-                          fontSize: "13px",
-                          color: "var(--color-text-muted)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {formatDate(exp.date)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "13px 16px",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                          color: "var(--color-danger)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        -{formatCurrency(exp.amount)}
-                      </td>
-                      <td style={{ padding: "13px 16px" }}>
-                        <div style={{ display: "flex", gap: "6px" }}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditTarget(exp)}
-                            style={{ padding: "5px" }}
-                            title="Edit"
-                          >
-                            <Pencil size={13} />
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleDelete(exp.id)}
-                            style={{ padding: "5px" }}
-                            loading={deletingId === exp.id}
-                            title="Delete"
-                          >
-                            <Trash2 size={13} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-
-        {/* Pagination */}
-        {meta && meta.total_pages > 1 && (
+          </Card>
+        ) : (
           <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "12px",
-              marginTop: "20px",
-            }}
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
           >
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => {
-                const p = page - 1;
-                setPage(p);
-                refresh(p);
-              }}
-            >
-              <ChevronLeft size={14} /> Prev
-            </Button>
-            <span
-              style={{ fontSize: "13px", color: "var(--color-text-muted)" }}
-            >
-              Page{" "}
-              <strong style={{ color: "var(--color-text)" }}>{page}</strong> of{" "}
-              {meta.total_pages}
-            </span>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={page >= meta.total_pages}
-              onClick={() => {
-                const p = page + 1;
-                setPage(p);
-                refresh(p);
-              }}
-            >
-              Next <ChevronRight size={14} />
-            </Button>
+            {grouped.map(({ date, items }) => {
+              const dayTotal = items.reduce((sum, e) => sum + e.amount, 0);
+              const visibleCount = getVisibleCount(date);
+              const visibleItems = items.slice(0, visibleCount);
+              const hasMore = visibleCount < items.length;
+              const remaining = items.length - visibleCount;
+
+              return (
+                <div key={date}>
+                  {/* Date section header */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "8px",
+                      padding: "0 4px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "var(--color-text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      {dateGroupLabel(date)}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "var(--color-danger)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      -{formatCurrency(dayTotal)}
+                    </span>
+                  </div>
+
+                  <Card style={{ padding: "0", overflow: "hidden" }}>
+                    <div
+                      style={
+                        {
+                          overflowX: "auto",
+                          WebkitOverflowScrolling: "touch",
+                        } as any
+                      }
+                    >
+                      <table
+                        style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                          minWidth: "380px",
+                        }}
+                      >
+                        <tbody>
+                          {visibleItems.map((exp, i) => (
+                            <tr
+                              key={exp.id}
+                              style={{
+                                borderBottom:
+                                  i < visibleItems.length - 1 || hasMore
+                                    ? "1px solid var(--color-border)"
+                                    : "none",
+                                opacity: deletingId === exp.id ? 0.4 : 1,
+                                transition: "opacity 0.2s, background 0.1s",
+                              }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background =
+                                  "var(--color-surface-2)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background =
+                                  "transparent")
+                              }
+                            >
+                              <td
+                                style={{
+                                  padding: "13px 16px",
+                                  fontSize: "14px",
+                                  fontWeight: 500,
+                                  maxWidth: "160px",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {exp.title}
+                              </td>
+                              <td
+                                className="exp-col-category"
+                                style={{ padding: "13px 16px" }}
+                              >
+                                {exp.category && (
+                                  <Badge color={exp.category.color}>
+                                    {exp.category.icon} {exp.category.name}
+                                  </Badge>
+                                )}
+                              </td>
+                              <td
+                                className="exp-col-tags"
+                                style={{ padding: "13px 16px" }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: "4px",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {exp.tags?.map((tag) => (
+                                    <Badge key={tag}>{tag}</Badge>
+                                  ))}
+                                </div>
+                              </td>
+                              <td
+                                style={{
+                                  padding: "13px 16px",
+                                  fontFamily: "var(--font-mono)",
+                                  fontSize: "14px",
+                                  fontWeight: 600,
+                                  color: "var(--color-danger)",
+                                  whiteSpace: "nowrap",
+                                  textAlign: "right",
+                                }}
+                              >
+                                -{formatCurrency(exp.amount)}
+                              </td>
+                              <td
+                                style={{ padding: "13px 16px", width: "72px" }}
+                              >
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setEditTarget(exp)}
+                                    style={{ padding: "5px" }}
+                                    title="Edit"
+                                  >
+                                    <Pencil size={13} />
+                                  </Button>
+                                  <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => handleDelete(exp.id)}
+                                    style={{ padding: "5px" }}
+                                    loading={deletingId === exp.id}
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={13} />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Show more button */}
+                    {hasMore && (
+                      <button
+                        onClick={() => showMore(date, items.length)}
+                        style={{
+                          width: "100%",
+                          padding: "10px 16px",
+                          background: "transparent",
+                          border: "none",
+                          borderTop: "1px solid var(--color-border)",
+                          color: "var(--color-text-muted)",
+                          fontSize: "12px",
+                          fontFamily: "var(--font-sans)",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          transition: "background 0.1s, color 0.1s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background =
+                            "var(--color-surface-2)";
+                          e.currentTarget.style.color = "var(--color-text)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                          e.currentTarget.style.color =
+                            "var(--color-text-muted)";
+                        }}
+                      >
+                        <ChevronDown size={13} />
+                        Show {remaining} more
+                      </button>
+                    )}
+                  </Card>
+                </div>
+              );
+            })}
           </div>
         )}
 
