@@ -332,10 +332,7 @@ export function ExpensesClient({
         }
       `}</style>
 
-      <div
-        className="expenses-page"
-        style={{ padding: "32px", maxWidth: "680px", margin: "0 auto" }}
-      >
+      <div className="expenses-page" style={{ padding: "32px" }}>
         {/* ── Day navigator ─────────────────────── */}
         <div
           style={{
