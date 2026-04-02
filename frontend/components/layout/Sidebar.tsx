@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   X,
+  BarChart2,
 } from "lucide-react";
 import { useAuth } from "@/components/ui/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/income", label: "Income", icon: TrendingUp },
+  { href: "/report", label: "Report", icon: BarChart2 },
   { href: "/categories", label: "Categories", icon: Tag },
 ];
 
@@ -67,7 +69,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
         <span
           style={{ fontWeight: 600, fontSize: "15px", letterSpacing: "-0.3px" }}
         >
-          DuitFlow
+          ExpenseOS
         </span>
       </div>
 
@@ -283,7 +285,7 @@ export function Sidebar() {
           >
             <TrendingDown size={15} color="#fff" />
           </div>
-          <span style={{ fontWeight: 600, fontSize: "15px" }}>DuitFlow</span>
+          <span style={{ fontWeight: 600, fontSize: "15px" }}>ExpenseOS</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}
