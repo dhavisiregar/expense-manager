@@ -19,7 +19,7 @@ const EVENTS = [
 export function useInactivityLogout() {
   const router = useRouter();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastActiveKey = "expenseos_last_active";
+  const lastActiveKey = "duitflow_last_active";
 
   const logout = async () => {
     await supabase.auth.signOut();
