@@ -52,28 +52,17 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
           borderBottom: "1px solid var(--color-border)",
           display: "flex",
           alignItems: "center",
-          gap: "10px",
         }}
       >
-        <div
+        <img
+          src="/logo.png"
+          alt="DuitFlow Logo"
           style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "10px",
-            background: "var(--color-accent)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            height: "44px", // control logo size
+            width: "164px", // keep aspect ratio (important for wide logo)
+            objectFit: "contain",
           }}
-        >
-          <TrendingDown size={18} color="#fff" />
-        </div>
-        <span
-          style={{ fontWeight: 600, fontSize: "15px", letterSpacing: "-0.3px" }}
-        >
-          DuitFlow
-        </span>
+        />
       </div>
 
       {/* Nav */}
