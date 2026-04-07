@@ -8,7 +8,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { SubscriptionProvider } from "@/components/ui/SubscriptionProvider";
 
 export const metadata: Metadata = {
-  title: "ExpenseOS",
+  title: "DuitFlow - Expense Tracker",
   description: "Track your expenses with ease",
 };
 

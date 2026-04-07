@@ -72,7 +72,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
         <span
           style={{ fontWeight: 600, fontSize: "15px", letterSpacing: "-0.3px" }}
         >
-          ExpenseOS
+          DuitFlow
         </span>
       </div>
 
@@ -318,7 +318,7 @@ export function Sidebar() {
           >
             <TrendingDown size={15} color="#fff" />
           </div>
-          <span style={{ fontWeight: 600, fontSize: "15px" }}>ExpenseOS</span>
+          <span style={{ fontWeight: 600, fontSize: "15px" }}>DuitFlow</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}
