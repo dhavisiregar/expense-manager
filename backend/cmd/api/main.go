@@ -36,6 +36,7 @@ func main() {
 	expenseRepo := repository.NewExpenseRepository(db)
 	categoryRepo := repository.NewCategoryRepository(db)
 	incomeRepo := repository.NewIncomeRepository(db)
+	subscriptionRepo := repository.NewSubscriptionRepository(db)
 
 	// Services
 	expenseSvc := service.NewExpenseService(expenseRepo)
@@ -46,6 +47,7 @@ func main() {
 	expenseHandler := handler.NewExpenseHandler(expenseSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 	incomeHandler := handler.NewIncomeHandler(incomeSvc)
+	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionRepo)
 
 	// Router
 	r := chi.NewRouter()
@@ -68,12 +70,16 @@ func main() {
 		fmt.Fprintln(w, `{"status":"ok"}`)
 	})
 
+	// Public webhook — Midtrans calls this without a JWT
+	r.Post("/api/v1/subscription/webhook", subscriptionHandler.Webhook)
+
 	// Protected routes — all require a valid Supabase JWT
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(appmiddleware.Auth)
 		r.Route("/expenses", expenseHandler.Routes())
 		r.Route("/categories", categoryHandler.Routes())
 		r.Route("/incomes", incomeHandler.Routes())
+		r.Route("/subscription", subscriptionHandler.Routes())
 	})
 
 	port := os.Getenv("PORT")

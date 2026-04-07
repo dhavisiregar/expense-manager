@@ -14,7 +14,9 @@ import {
   Menu,
   X,
   BarChart2,
+  Crown,
 } from "lucide-react";
+import { useSubscription } from "@/components/ui/SubscriptionProvider";
 import { useAuth } from "@/components/ui/AuthProvider";
 import { useToast } from "@/components/ui/Toast";
 
@@ -31,6 +33,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const toast = useToast();
+  const { isPro } = useSubscription();
 
   const handleSignOut = async () => {
     await signOut();
@@ -69,7 +72,7 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
         <span
           style={{ fontWeight: 600, fontSize: "15px", letterSpacing: "-0.3px" }}
         >
-          DuitFlow
+          ExpenseOS
         </span>
       </div>
 
@@ -146,6 +149,36 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
           })}
         </ul>
       </nav>
+
+      {/* Upgrade CTA */}
+      {!isPro && (
+        <div style={{ padding: "10px 12px" }}>
+          <button
+            onClick={() => {
+              router.push("/upgrade");
+              if (onNav) onNav();
+            }}
+            style={{
+              width: "100%",
+              padding: "9px 12px",
+              borderRadius: "8px",
+              background: "linear-gradient(135deg, #f59e0b22, #f9731622)",
+              border: "1px solid #f59e0b44",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "#f59e0b",
+              fontWeight: 600,
+              fontSize: "13px",
+              fontFamily: "var(--font-sans)",
+              transition: "opacity 0.15s",
+            }}
+          >
+            <Crown size={14} /> Upgrade to Pro
+          </button>
+        </div>
+      )}
 
       {/* User + sign out */}
       <div
@@ -285,7 +318,7 @@ export function Sidebar() {
           >
             <TrendingDown size={15} color="#fff" />
           </div>
-          <span style={{ fontWeight: 600, fontSize: "15px" }}>DuitFlow</span>
+          <span style={{ fontWeight: 600, fontSize: "15px" }}>ExpenseOS</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}

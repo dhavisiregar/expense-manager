@@ -136,3 +136,23 @@ type MonthlyTrend struct {
 	Income float64 `json:"income"`
 	Count  int     `json:"count"`
 }
+
+type Subscription struct {
+	ID               string     `json:"id"`
+	UserID           string     `json:"user_id"`
+	Plan             string     `json:"plan"`    // "free" | "pro"
+	Status           string     `json:"status"`  // "active" | "expired" | "cancelled"
+	MidtransOrderID  *string    `json:"midtrans_order_id,omitempty"`
+	MidtransTxID     *string    `json:"midtrans_tx_id,omitempty"`
+	StartedAt        *time.Time `json:"started_at,omitempty"`
+	ExpiresAt        *time.Time `json:"expires_at,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+}
+
+func (s *Subscription) IsPro() bool {
+	if s.Plan != "pro" { return false }
+	if s.Status != "active" { return false }
+	if s.ExpiresAt != nil && time.Now().After(*s.ExpiresAt) { return false }
+	return true
+}

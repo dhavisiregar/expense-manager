@@ -5,9 +5,10 @@ import { AuthGuard } from "@/components/ui/AuthGuard";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { AppShell } from "@/components/layout/AppShell";
+import { SubscriptionProvider } from "@/components/ui/SubscriptionProvider";
 
 export const metadata: Metadata = {
-  title: "DuitFlow",
+  title: "ExpenseOS",
   description: "Track your expenses with ease",
 };
 
@@ -40,13 +41,15 @@ export default function RootLayout({
         }}
       >
         <AuthProvider>
-          <ToastProvider>
-            <ErrorBoundary>
-              <AuthGuard>
-                <AppShell>{children}</AppShell>
-              </AuthGuard>
-            </ErrorBoundary>
-          </ToastProvider>
+          <SubscriptionProvider>
+            <ToastProvider>
+              <ErrorBoundary>
+                <AuthGuard>
+                  <AppShell>{children}</AppShell>
+                </AuthGuard>
+              </ErrorBoundary>
+            </ToastProvider>
+          </SubscriptionProvider>
         </AuthProvider>
       </body>
     </html>
