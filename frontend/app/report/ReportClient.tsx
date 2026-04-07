@@ -15,6 +15,9 @@ import {
   Wallet,
 } from "lucide-react";
 import { errorAlert } from "@/lib/alert";
+import { useSubscription } from "@/components/ui/SubscriptionProvider";
+import { Crown } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // ─── helpers ─────────────────────────────────────────────────
 
@@ -470,6 +473,8 @@ function PeriodDetail({
 // ─── Main Report Component ────────────────────────────────────
 
 export function ReportClient() {
+  const { isPro } = useSubscription();
+  const router = useRouter();
   const [periods, setPeriods] = useState<PeriodSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PeriodSummary | null>(null);

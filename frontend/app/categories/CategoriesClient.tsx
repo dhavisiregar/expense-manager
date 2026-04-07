@@ -19,7 +19,9 @@ import {
   Badge,
 } from "@/components/ui";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
-import { Plus, Pencil, Trash2, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Lock } from "lucide-react";
+import { useSubscription } from "@/components/ui/SubscriptionProvider";
+import { useRouter } from "next/navigation";
 import { successAlert, errorAlert, confirmDelete } from "@/lib/alert";
 
 const PRESET_COLORS = [
@@ -255,6 +257,8 @@ export function CategoriesClient({
   initialCategories: Category[];
 }) {
   const [categories, setCategories] = useState(initialCategories);
+  const { isPro } = useSubscription();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState<Category | null>(null);
@@ -279,6 +283,16 @@ export function CategoriesClient({
         errorAlert("Failed to refresh categories");
       }
     });
+  };
+
+  const FREE_LIMIT = 5;
+
+  const handleOpenAdd = () => {
+    if (!isPro && categories.length >= FREE_LIMIT) {
+      router.push("/upgrade");
+      return;
+    }
+    setShowAdd(true);
   };
 
   const handleCreate = async (input: CreateCategoryInput) => {
@@ -338,11 +352,30 @@ export function CategoriesClient({
     <div style={{ padding: "32px" }}>
       <PageHeader
         title="Categories"
-        subtitle={`${categories.length} ${categories.length === 1 ? "category" : "categories"}`}
+        subtitle={
+          isPro
+            ? `${categories.length} categories`
+            : `${categories.length} / 5 categories (Free plan)`
+        }
         action={
-          <Button onClick={() => setShowAdd(true)}>
-            <Plus size={15} /> New Category
-          </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {!isPro && categories.length >= FREE_LIMIT && (
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--color-warning)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <Lock size={12} /> Limit reached
+              </span>
+            )}
+            <Button onClick={handleOpenAdd}>
+              <Plus size={15} /> New Category
+            </Button>
+          </div>
         }
       />
 

@@ -6,15 +6,21 @@ import (
 
 	"github.com/dhavisiregar/expense-manager/internal/domain"
 	appmiddleware "github.com/dhavisiregar/expense-manager/internal/middleware"
+	"github.com/dhavisiregar/expense-manager/internal/repository"
 	"github.com/dhavisiregar/expense-manager/internal/service"
 	"github.com/dhavisiregar/expense-manager/pkg/response"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
-type CategoryHandler struct{ svc *service.CategoryService }
+type CategoryHandler struct{
+	svc     *service.CategoryService
+	subRepo repository.SubscriptionRepository
+}
 
-func NewCategoryHandler(svc *service.CategoryService) *CategoryHandler { return &CategoryHandler{svc: svc} }
+func NewCategoryHandler(svc *service.CategoryService, subRepo repository.SubscriptionRepository) *CategoryHandler {
+	return &CategoryHandler{svc: svc, subRepo: subRepo}
+}
 
 func (h *CategoryHandler) Routes() func(r chi.Router) {
 	return func(r chi.Router) {
@@ -43,7 +49,9 @@ func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusBadRequest, "invalid request body"); return
 	}
 	input.UserID = userID
-	cat, err := h.svc.Create(r.Context(), input)
+	sub, _ := h.subRepo.GetByUserID(r.Context(), userID)
+	isPro := sub != nil && sub.IsPro()
+	cat, err := h.svc.Create(r.Context(), input, isPro)
 	if err != nil { response.Error(w, http.StatusBadRequest, err.Error()); return }
 	response.JSON(w, http.StatusCreated, cat)
 }

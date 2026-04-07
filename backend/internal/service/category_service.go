@@ -16,7 +16,7 @@ func NewCategoryService(repo domain.CategoryRepository) *CategoryService {
 	return &CategoryService{repo: repo}
 }
 
-func (s *CategoryService) Create(ctx context.Context, input domain.CreateCategoryInput) (*domain.Category, error) {
+func (s *CategoryService) Create(ctx context.Context, input domain.CreateCategoryInput, isPro bool) (*domain.Category, error) {
 	if input.Name == "" {
 		return nil, fmt.Errorf("name is required")
 	}
@@ -25,6 +25,13 @@ func (s *CategoryService) Create(ctx context.Context, input domain.CreateCategor
 	}
 	if input.Icon == "" {
 		input.Icon = "🏷️"
+	}
+	// Enforce free plan limit
+	if !isPro {
+		existing, err := s.repo.List(ctx, input.UserID)
+		if err == nil && len(existing) >= 5 {
+			return nil, fmt.Errorf("free plan is limited to 5 categories, upgrade to Pro for unlimited")
+		}
 	}
 	return s.repo.Create(ctx, input)
 }

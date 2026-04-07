@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button, Input } from "@/components/ui";
-import { TrendingDown, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 type Mode = "login" | "register";
 
@@ -91,34 +91,21 @@ export default function AuthPage() {
       <div style={{ width: "100%", maxWidth: "380px" }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div
+          <img
+            src="/logo.png"
+            alt="DuitFlow Logo"
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "14px",
-              background: "var(--color-accent)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              width: "308px",
+              height: "68px",
+              objectFit: "contain",
               margin: "0 auto 12px",
+              display: "block",
             }}
-          >
-            <TrendingDown size={24} color="#fff" />
-          </div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "22px",
-              fontWeight: 700,
-              letterSpacing: "-0.4px",
-            }}
-          >
-            DuitFlow
-          </h1>
+          />
           <p
             style={{
               margin: "4px 0 0",
-              fontSize: "14px",
+              fontSize: "20px",
               color: "var(--color-text-muted)",
             }}
           >

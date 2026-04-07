@@ -45,7 +45,7 @@ func main() {
 
 	// Handlers
 	expenseHandler := handler.NewExpenseHandler(expenseSvc)
-	categoryHandler := handler.NewCategoryHandler(categorySvc)
+	categoryHandler := handler.NewCategoryHandler(categorySvc, subscriptionRepo)
 	incomeHandler := handler.NewIncomeHandler(incomeSvc)
 	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionRepo)
 

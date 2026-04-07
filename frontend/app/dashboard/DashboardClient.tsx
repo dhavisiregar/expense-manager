@@ -27,6 +27,8 @@ import {
 import Link from "next/link";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { getDashboard } from "@/lib/api";
+import { useSubscription } from "@/components/ui/SubscriptionProvider";
+import { ProGate } from "@/components/ui/Progate";
 import { errorAlert } from "@/lib/alert";
 
 function StatCard({
@@ -110,6 +112,7 @@ export function DashboardClient({
 }: {
   summary: DashboardSummary | null;
 }) {
+  const { isPro } = useSubscription();
   const [summary, setSummary] = useState<DashboardSummary | null>(
     initialSummary,
   );
@@ -251,79 +254,107 @@ export function DashboardClient({
           marginBottom: "24px",
         }}
       >
-        <Card>
-          <p style={{ margin: "0 0 20px", fontWeight: 600, fontSize: "14px" }}>
-            Income vs Expenses (6 months)
-          </p>
-          {trendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22d3a0" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#22d3a0" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradExpenses" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff5c7c" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#ff5c7c" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: "#8888aa", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: "#8888aa", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#111118",
-                    border: "1px solid #ffffff10",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                  formatter={(v) => [formatCurrency(v as number)]}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}
-                  formatter={(val) =>
-                    val === "income" ? "Income" : "Expenses"
-                  }
-                />
-                <Area
-                  type="monotone"
-                  dataKey="income"
-                  stroke="#22d3a0"
-                  strokeWidth={2}
-                  fill="url(#gradIncome)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expenses"
-                  stroke="#ff5c7c"
-                  strokeWidth={2}
-                  fill="url(#gradExpenses)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <EmptyState
-              icon={<TrendingUp size={24} />}
-              title="No trend data yet"
-              subtitle="Add income and expenses to see trends"
-            />
-          )}
-        </Card>
+        {/* Wrapping the historical trend chart with ProGate based on Option 1 */}
+        <ProGate>
+          <Card>
+            <p
+              style={{ margin: "0 0 20px", fontWeight: 600, fontSize: "14px" }}
+            >
+              Income vs Expenses (6 months)
+            </p>
+            {trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor="#22d3a0"
+                        stopOpacity={0.25}
+                      />
+                      <stop offset="95%" stopColor="#22d3a0" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient
+                      id="gradExpenses"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="#ff5c7c"
+                        stopOpacity={0.25}
+                      />
+                      <stop offset="95%" stopColor="#ff5c7c" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: "#8888aa", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: "#8888aa", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#111118",
+                      border: "1px solid #ffffff10",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                    formatter={(v) => [formatCurrency(v as number)]}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}
+                    formatter={(val) =>
+                      val === "income" ? "Income" : "Expenses"
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="income"
+                    stroke="#22d3a0"
+                    strokeWidth={2}
+                    fill="url(#gradIncome)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="expenses"
+                    stroke="#ff5c7c"
+                    strokeWidth={2}
+                    fill="url(#gradExpenses)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyState
+                icon={<TrendingUp size={24} />}
+                title="No trend data yet"
+                subtitle="Add income and expenses to see trends"
+              />
+            )}
+          </Card>
+        </ProGate>
+
         <Card>
           <p style={{ margin: "0 0 16px", fontWeight: 600, fontSize: "14px" }}>
             Expenses by Category
           </p>
-          {byCategory.length > 0 ? (
+
+          {/* Using Option 2 for the Category Pie Chart to prompt upgrades */}
+          {!isPro ? (
+            <EmptyState
+              icon={<Tag size={24} />}
+              title="Pro Feature"
+              subtitle="Upgrade to Pro to unlock category breakdown."
+            />
+          ) : byCategory.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={160}>
                 <PieChart>
