@@ -33,6 +33,7 @@ func (h *SubscriptionHandler) Routes() func(r chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/status", h.Status)
 		r.Post("/create-payment", h.CreatePayment)
+		r.Post("/verify", h.VerifyPayment)
 		r.Post("/webhook", h.Webhook) // No auth — called by Midtrans
 	}
 }
@@ -131,6 +132,87 @@ func (h *SubscriptionHandler) CreatePayment(w http.ResponseWriter, r *http.Reque
 		"snap_token":   snapResp["token"],
 		"redirect_url": snapResp["redirect_url"],
 		"order_id":     orderID,
+	})
+}
+
+
+// POST /api/v1/subscription/verify
+// Frontend calls this after Midtrans redirect to confirm and activate payment
+func (h *SubscriptionHandler) VerifyPayment(w http.ResponseWriter, r *http.Request) {
+	userID, ok := appmiddleware.GetUserID(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var body struct {
+		OrderID string `json:"order_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.OrderID == "" {
+		response.Error(w, http.StatusBadRequest, "order_id required")
+		return
+	}
+
+	serverKey := os.Getenv("MIDTRANS_SERVER_KEY")
+	baseURL := "https://api.sandbox.midtrans.com"
+	if os.Getenv("MIDTRANS_ENV") == "production" {
+		baseURL = "https://api.midtrans.com"
+	}
+
+	// Check transaction status directly from Midtrans
+	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/v2/%s/status", baseURL, body.OrderID), nil)
+	req.SetBasicAuth(serverKey, "")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		response.Error(w, http.StatusInternalServerError, "failed to verify payment")
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	var txStatus map[string]any
+	json.Unmarshal(respBody, &txStatus)
+
+	status, _ := txStatus["transaction_status"].(string)
+	fraudStatus, _ := txStatus["fraud_status"].(string)
+	txID, _ := txStatus["transaction_id"].(string)
+
+	isSuccess := status == "settlement" ||
+		(status == "capture" && fraudStatus == "accept")
+
+	if !isSuccess {
+		sub, _ := h.repo.GetByUserID(r.Context(), userID)
+		response.JSON(w, http.StatusOK, map[string]any{
+			"activated": false,
+			"status":    status,
+			"plan":      sub.Plan,
+		})
+		return
+	}
+
+	// Try webhook path first
+	expiresAt := time.Now().AddDate(0, 0, ProDurationDays)
+	err = h.repo.ActivatePro(r.Context(), body.OrderID, txID, expiresAt)
+	if err != nil {
+		// Fallback: upsert directly on user
+		sub, _ := h.repo.GetByUserID(r.Context(), userID)
+		orderID := body.OrderID
+		sub.MidtransOrderID = &orderID
+		sub.MidtransTxID = &txID
+		sub.Plan = "pro"
+		sub.Status = "active"
+		now := time.Now()
+		sub.StartedAt = &now
+		sub.ExpiresAt = &expiresAt
+		h.repo.Upsert(r.Context(), sub)
+	}
+
+	response.JSON(w, http.StatusOK, map[string]any{
+		"activated":  true,
+		"plan":       "pro",
+		"expires_at": expiresAt,
 	})
 }
 

@@ -56,7 +56,30 @@ export default function UpgradePage() {
 
   useEffect(() => {
     if (status === "success") {
-      refresh();
+      // Get order_id from URL and verify with backend
+      const orderId = searchParams.get("order_id");
+      if (orderId) {
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
+          if (!session) return;
+          try {
+            await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/subscription/verify`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ order_id: orderId }),
+              },
+            );
+          } catch {}
+          // Always refresh subscription state after attempt
+          refresh();
+        });
+      } else {
+        refresh();
+      }
     }
   }, [status]);
 
