@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   signInWithEmailAndPassword,
@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useAuth } from "@/components/ui/AuthProvider";
 import { Button, Input } from "@/components/ui";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -16,6 +17,7 @@ type Mode = "login" | "register";
 
 export default function AuthPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +25,10 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    if (user) router.replace("/dashboard");
+  }, [user]);
 
   const handleGoogle = async () => {
     setError("");
@@ -43,7 +49,6 @@ export default function AuthPage() {
           await fetch(`${apiUrl}/categories/seed`, { method: "POST", headers }).catch(() => {});
         }
       }
-      router.replace("/dashboard");
     } catch (e: any) {
       if (e.code !== "auth/popup-closed-by-user") {
         setError(e.message || "Google sign-in failed");
@@ -88,7 +93,6 @@ export default function AuthPage() {
             await fetch(`${apiUrl}/categories/seed`, { method: "POST", headers }).catch(() => {});
           }
         }
-        router.replace("/dashboard");
       }
     } catch (e: any) {
       const msg = e.code
