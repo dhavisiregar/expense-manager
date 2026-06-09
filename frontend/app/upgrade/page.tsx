@@ -56,28 +56,34 @@ export default function UpgradePage() {
 
   useEffect(() => {
     if (status === "success") {
-      // Get order_id from URL and verify with backend
       const orderId = searchParams.get("order_id");
       if (orderId) {
-        (async () => {
-          const user = auth.currentUser;
-          if (!user) return;
-          try {
-            const token = await user.getIdToken();
-            await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/subscription/verify`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ order_id: orderId }),
-              },
-            );
-          } catch {}
+        const verifyWithRetry = async (retries = 5) => {
+          for (let i = 0; i < retries; i++) {
+            const user = auth.currentUser;
+            if (user) {
+              try {
+                const token = await user.getIdToken();
+                await fetch(
+                  `${process.env.NEXT_PUBLIC_API_URL}/subscription/verify`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ order_id: orderId }),
+                  },
+                );
+              } catch {}
+              refresh();
+              return;
+            }
+            await new Promise((r) => setTimeout(r, 500));
+          }
           refresh();
-        })();
+        };
+        verifyWithRetry();
       } else {
         refresh();
       }
