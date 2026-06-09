@@ -1,6 +1,6 @@
 # 💸 DuitFlow — Expense Manager
 
-A full-stack personal finance manager built with **Next.js 15**, **React 19**, **Tailwind CSS 4**, **Go (Chi)**, and **Supabase (PostgreSQL)**.
+A full-stack personal finance manager built with **Next.js 15**, **React 19**, **Go (Chi)**, **Neon (PostgreSQL)**, and **Firebase Auth**.
 
 ---
 
@@ -31,7 +31,7 @@ expense-manager/
     │   ├── ui/                 # Shared UI (Button, Modal, Toast, etc.)
     │   └── layout/             # Sidebar, AppShell
     ├── hooks/                  # useExpenses, useCategories
-    ├── lib/                    # API client, Supabase client, utils
+    ├── lib/                    # API client, Firebase client, utils
     └── types/                  # TypeScript interfaces
 ```
 
@@ -39,11 +39,11 @@ expense-manager/
 
 ## ✨ Features
 
-- 🔐 **Auth** — Supabase Auth (email/password), JWT verification in Go, per-user Row Level Security
+- 🔐 **Auth** — Firebase Auth (email/password + Google), RS256 JWT verification in Go
 - 📊 **Dashboard** — income vs expenses area chart, category donut chart, 6 stat cards (all-time + monthly balance)
 - 💳 **Expenses** — paginated table, create/edit/delete, filter by category, search, tag support
 - 💰 **Income** — track earnings by source (Salary, Freelance, Business, etc.)
-- 🏷️ **Categories** — emoji + color picker, per-user with seeded defaults on first login
+- 🏷️ **Categories** — emoji + color picker, per-user with seeded defaults on first register
 - 🌙 **Dark theme** — custom CSS variable design system
 - 🏗️ **Clean Architecture** — Go backend with domain/handler/service/repository layers
 
@@ -51,43 +51,52 @@ expense-manager/
 
 ## 🛠️ Tech Stack
 
-| Layer    | Tech                                  |
-| -------- | ------------------------------------- |
-| Frontend | Next.js 15, React 19, Tailwind CSS 4  |
-| Backend  | Go 1.23, Chi router, golang-jwt       |
-| Database | Supabase (PostgreSQL via pgx/v5), RLS |
-| Auth     | Supabase Auth (ES256 / HS256 JWT)     |
-| Charts   | Recharts                              |
-| Icons    | Lucide React                          |
+| Layer    | Tech                                     |
+| -------- | ---------------------------------------- |
+| Frontend | Next.js 15, React 19, Tailwind CSS 4     |
+| Backend  | Go 1.23, Chi router, golang-jwt          |
+| Database | Neon (PostgreSQL via pgx/v5)             |
+| Auth     | Firebase Auth (RS256 JWT)                |
+| Charts   | Recharts                                 |
+| Icons    | Lucide React                             |
 
 ---
 
 ## 🚀 Quick Start (Local)
 
-### 1. Supabase Setup
+### 1. Neon Setup
 
-1. Create a project at [supabase.com](https://supabase.com)
+1. Create a project at [neon.tech](https://neon.tech)
 2. Go to **SQL Editor** and run migrations **in order**:
    ```
    migrations/001_initial_schema.sql
-   migrations/002_views_and_functions.sql
-   migrations/003_fix_icon_emojis.sql
-   migrations/004_income.sql
-   migrations/005_multi_user_rls.sql
+   migrations/007_neon_user_id.sql
    ```
-3. Go to **Settings → API** and copy:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon / public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Go to **Settings → JWT Keys** and copy the **JWT Secret** (Legacy tab) → `SUPABASE_JWT_SECRET`
+3. Copy the **Connection string** (pooler) → `DATABASE_URL`
 
 ---
 
-### 2. Backend (Go)
+### 2. Firebase Setup
+
+1. Create a project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Go to **Authentication → Sign-in method** and enable:
+   - **Email/Password**
+   - **Google**
+3. Go to **Project Settings → General → Your apps** → Add a **Web app**
+4. Copy the config values:
+   - `apiKey` → `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `authDomain` → `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `projectId` → `NEXT_PUBLIC_FIREBASE_PROJECT_ID` / `FIREBASE_PROJECT_ID`
+5. Go to **Authentication → Settings → Authorized domains** and add your Vercel domain
+
+---
+
+### 3. Backend (Go)
 
 ```bash
 cd backend
 cp .env.example .env
-# Fill in your values (see .env.example)
+# Fill in your values
 
 go mod tidy
 go run ./cmd/api/main.go
@@ -97,22 +106,24 @@ go run ./cmd/api/main.go
 **`backend/.env`**
 
 ```env
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres
-SUPABASE_URL=https://[REF].supabase.co
-SUPABASE_JWT_SECRET=your-legacy-jwt-secret   # only needed for HS256
+DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require&channel_binding=require
+FIREBASE_PROJECT_ID=your-firebase-project-id
 PORT=8080
 FRONTEND_URL=http://localhost:3000
+MIDTRANS_SERVER_KEY=...
+MIDTRANS_CLIENT_KEY=...
+MIDTRANS_ENV=sandbox
 ```
 
 **Requirements:** Go 1.23+
 
 ---
 
-### 3. Frontend (Next.js)
+### 4. Frontend (Next.js)
 
 ```bash
 cd frontend
-cp .env.local.example .env.local
+cp .env.example .env
 # Fill in your values
 
 npm install
@@ -120,12 +131,15 @@ npm run dev
 # → App running on http://localhost:3000
 ```
 
-**`frontend/.env.local`**
+**`frontend/.env`**
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
-NEXT_PUBLIC_SUPABASE_URL=https://[REF].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSy...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=...
+NEXT_PUBLIC_MIDTRANS_ENV=sandbox
 ```
 
 **Requirements:** Node.js 20+
@@ -142,10 +156,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 4. Add environment variables:
    ```
    NEXT_PUBLIC_API_URL=https://your-render-api.onrender.com/api/v1
-   NEXT_PUBLIC_SUPABASE_URL=https://[REF].supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+   NEXT_PUBLIC_FIREBASE_API_KEY=...
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
    ```
-5. Deploy → get your Vercel URL
+5. Deploy → copy your Vercel URL
+6. Add the Vercel URL to **Firebase → Authentication → Settings → Authorized domains**
 
 ### Backend → Render
 
@@ -160,21 +176,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 3. Add environment variables:
    ```
    DATABASE_URL=postgresql://...
-   SUPABASE_URL=https://[REF].supabase.co
-   SUPABASE_JWT_SECRET=...
+   FIREBASE_PROJECT_ID=your-project-id
    PORT=8080
    FRONTEND_URL=https://your-app.vercel.app
+   MIDTRANS_SERVER_KEY=...
+   MIDTRANS_CLIENT_KEY=...
+   MIDTRANS_ENV=sandbox
    ```
-4. Deploy → get your Render URL
-5. Go back to Vercel and update `NEXT_PUBLIC_API_URL` to your Render URL → Redeploy
-
-### Supabase Auth (important)
-
-Go to **Authentication → URL Configuration** and add your Vercel URL to **Redirect URLs**:
-
-```
-https://your-app.vercel.app
-```
+4. Deploy → copy your Render URL
+5. Update `NEXT_PUBLIC_API_URL` in Vercel to your Render URL → Redeploy
 
 ---
 
@@ -182,7 +192,7 @@ https://your-app.vercel.app
 
 Base URL: `http://localhost:8080/api/v1`
 
-> All endpoints require `Authorization: Bearer <token>` header.
+> All endpoints require `Authorization: Bearer <firebase-id-token>` header.
 
 ### Expenses
 
@@ -207,11 +217,20 @@ Base URL: `http://localhost:8080/api/v1`
 
 ### Categories
 
-| Method | Path               | Description                               |
-| ------ | ------------------ | ----------------------------------------- |
-| GET    | `/categories`      | List (current user only)                  |
-| POST   | `/categories`      | Create                                    |
-| POST   | `/categories/seed` | Seed 10 defaults (skips if already exist) |
-| GET    | `/categories/:id`  | Get by ID                                 |
-| PUT    | `/categories/:id`  | Update                                    |
-| DELETE | `/categories/:id`  | Delete                                    |
+| Method | Path               | Description                                    |
+| ------ | ------------------ | ---------------------------------------------- |
+| GET    | `/categories`      | List (current user only)                       |
+| POST   | `/categories`      | Create                                         |
+| POST   | `/categories/seed` | Seed 10 defaults (skips if user already has any) |
+| GET    | `/categories/:id`  | Get by ID                                      |
+| PUT    | `/categories/:id`  | Update                                         |
+| DELETE | `/categories/:id`  | Delete                                         |
+
+### Subscription
+
+| Method | Path                          | Description                        |
+| ------ | ----------------------------- | ---------------------------------- |
+| GET    | `/subscription/status`        | Get current user's plan            |
+| POST   | `/subscription/create-payment`| Create Midtrans Snap transaction   |
+| POST   | `/subscription/verify`        | Verify payment after redirect      |
+| POST   | `/subscription/webhook`       | Midtrans webhook (no auth required)|
