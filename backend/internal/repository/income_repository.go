@@ -33,7 +33,7 @@ func (r *incomeRepo) Create(ctx context.Context, input domain.CreateIncomeInput)
 	return inc, nil
 }
 
-func (r *incomeRepo) GetByID(ctx context.Context, id, userID uuid.UUID) (*domain.Income, error) {
+func (r *incomeRepo) GetByID(ctx context.Context, id uuid.UUID, userID string) (*domain.Income, error) {
 	inc := &domain.Income{}
 	err := r.db.QueryRow(ctx,
 		`SELECT id, user_id, title, amount, source, date, description, created_at, updated_at FROM incomes WHERE id=$1 AND user_id=$2`,
@@ -94,7 +94,7 @@ func (r *incomeRepo) List(ctx context.Context, filter domain.IncomeFilter) ([]do
 	return incomes, total, nil
 }
 
-func (r *incomeRepo) Update(ctx context.Context, id, userID uuid.UUID, input domain.UpdateIncomeInput) (*domain.Income, error) {
+func (r *incomeRepo) Update(ctx context.Context, id uuid.UUID, userID string, input domain.UpdateIncomeInput) (*domain.Income, error) {
 	inc := &domain.Income{}
 	err := r.db.QueryRow(ctx, `
 		UPDATE incomes SET
@@ -110,7 +110,7 @@ func (r *incomeRepo) Update(ctx context.Context, id, userID uuid.UUID, input dom
 	return inc, nil
 }
 
-func (r *incomeRepo) Delete(ctx context.Context, id, userID uuid.UUID) error {
+func (r *incomeRepo) Delete(ctx context.Context, id uuid.UUID, userID string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM incomes WHERE id=$1 AND user_id=$2`, id, userID)
 	return err
 }

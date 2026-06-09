@@ -6,12 +6,11 @@ import (
 	"time"
 
 	"github.com/dhavisiregar/expense-manager/internal/domain"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type SubscriptionRepository interface {
-	GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Subscription, error)
+	GetByUserID(ctx context.Context, userID string) (*domain.Subscription, error)
 	Upsert(ctx context.Context, sub *domain.Subscription) error
 	GetByOrderID(ctx context.Context, orderID string) (*domain.Subscription, error)
 	ActivatePro(ctx context.Context, orderID, txID string, expiresAt time.Time) error
@@ -25,7 +24,7 @@ func NewSubscriptionRepository(db *pgxpool.Pool) SubscriptionRepository {
 	return &subscriptionRepo{db: db}
 }
 
-func (r *subscriptionRepo) GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Subscription, error) {
+func (r *subscriptionRepo) GetByUserID(ctx context.Context, userID string) (*domain.Subscription, error) {
 	sub := &domain.Subscription{}
 	err := r.db.QueryRow(ctx, `
 		SELECT id, user_id, plan, status, midtrans_order_id, midtrans_tx_id,
@@ -37,9 +36,8 @@ func (r *subscriptionRepo) GetByUserID(ctx context.Context, userID uuid.UUID) (*
 		&sub.StartedAt, &sub.ExpiresAt, &sub.CreatedAt, &sub.UpdatedAt,
 	)
 	if err != nil {
-		// Auto-create free subscription if not exists
 		sub = &domain.Subscription{
-			UserID: userID.String(),
+			UserID: userID,
 			Plan:   "free",
 			Status: "active",
 		}

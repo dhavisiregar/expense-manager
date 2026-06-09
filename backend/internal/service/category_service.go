@@ -26,7 +26,6 @@ func (s *CategoryService) Create(ctx context.Context, input domain.CreateCategor
 	if input.Icon == "" {
 		input.Icon = "🏷️"
 	}
-	// Enforce free plan limit
 	if !isPro {
 		existing, err := s.repo.List(ctx, input.UserID)
 		if err == nil && len(existing) >= 5 {
@@ -36,27 +35,26 @@ func (s *CategoryService) Create(ctx context.Context, input domain.CreateCategor
 	return s.repo.Create(ctx, input)
 }
 
-func (s *CategoryService) GetByID(ctx context.Context, id, userID uuid.UUID) (*domain.Category, error) {
+func (s *CategoryService) GetByID(ctx context.Context, id uuid.UUID, userID string) (*domain.Category, error) {
 	return s.repo.GetByID(ctx, id, userID)
 }
 
-func (s *CategoryService) List(ctx context.Context, userID uuid.UUID) ([]domain.Category, error) {
+func (s *CategoryService) List(ctx context.Context, userID string) ([]domain.Category, error) {
 	return s.repo.List(ctx, userID)
 }
 
-func (s *CategoryService) Update(ctx context.Context, id, userID uuid.UUID, input domain.UpdateCategoryInput) (*domain.Category, error) {
+func (s *CategoryService) Update(ctx context.Context, id uuid.UUID, userID string, input domain.UpdateCategoryInput) (*domain.Category, error) {
 	if input.Name != nil && *input.Name == "" {
 		return nil, fmt.Errorf("name cannot be empty")
 	}
 	return s.repo.Update(ctx, id, userID, input)
 }
 
-func (s *CategoryService) Delete(ctx context.Context, id, userID uuid.UUID) error {
+func (s *CategoryService) Delete(ctx context.Context, id uuid.UUID, userID string) error {
 	return s.repo.Delete(ctx, id, userID)
 }
 
-func (s *CategoryService) SeedDefaults(ctx context.Context, userID uuid.UUID) error {
-	// Don't seed if user already has categories
+func (s *CategoryService) SeedDefaults(ctx context.Context, userID string) error {
 	existing, err := s.repo.List(ctx, userID)
 	if err == nil && len(existing) > 0 {
 		return nil

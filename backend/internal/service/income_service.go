@@ -32,7 +32,7 @@ func (s *IncomeService) Create(ctx context.Context, input domain.CreateIncomeInp
 	return s.repo.Create(ctx, input)
 }
 
-func (s *IncomeService) GetByID(ctx context.Context, id, userID uuid.UUID) (*domain.Income, error) {
+func (s *IncomeService) GetByID(ctx context.Context, id uuid.UUID, userID string) (*domain.Income, error) {
 	return s.repo.GetByID(ctx, id, userID)
 }
 
@@ -40,13 +40,13 @@ func (s *IncomeService) List(ctx context.Context, filter domain.IncomeFilter) ([
 	return s.repo.List(ctx, filter)
 }
 
-func (s *IncomeService) Update(ctx context.Context, id, userID uuid.UUID, input domain.UpdateIncomeInput) (*domain.Income, error) {
+func (s *IncomeService) Update(ctx context.Context, id uuid.UUID, userID string, input domain.UpdateIncomeInput) (*domain.Income, error) {
 	if input.Amount != nil && *input.Amount <= 0 {
 		return nil, fmt.Errorf("amount must be greater than 0")
 	}
 	return s.repo.Update(ctx, id, userID, input)
 }
 
-func (s *IncomeService) Delete(ctx context.Context, id, userID uuid.UUID) error {
+func (s *IncomeService) Delete(ctx context.Context, id uuid.UUID, userID string) error {
 	return s.repo.Delete(ctx, id, userID)
 }

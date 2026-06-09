@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { auth } from "@/lib/firebase";
 import { useSubscription } from "@/components/ui/SubscriptionProvider";
 import { Crown, Check, Zap, BarChart2, Tag, FileText } from "lucide-react";
 
@@ -59,24 +59,25 @@ export default function UpgradePage() {
       // Get order_id from URL and verify with backend
       const orderId = searchParams.get("order_id");
       if (orderId) {
-        supabase.auth.getSession().then(async ({ data: { session } }) => {
-          if (!session) return;
+        (async () => {
+          const user = auth.currentUser;
+          if (!user) return;
           try {
+            const token = await user.getIdToken();
             await fetch(
               `${process.env.NEXT_PUBLIC_API_URL}/subscription/verify`,
               {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${session.access_token}`,
+                  Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({ order_id: orderId }),
               },
             );
           } catch {}
-          // Always refresh subscription state after attempt
           refresh();
-        });
+        })();
       } else {
         refresh();
       }
@@ -86,10 +87,9 @@ export default function UpgradePage() {
   const handleUpgrade = async () => {
     setPaying(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
+      const user = auth.currentUser;
+      if (!user) return;
+      const token = await user.getIdToken();
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/subscription/create-payment`,
@@ -97,9 +97,9 @@ export default function UpgradePage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ email: session.user.email }),
+          body: JSON.stringify({ email: user.email }),
         },
       );
 

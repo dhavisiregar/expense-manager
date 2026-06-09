@@ -7,7 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { supabase } from "@/lib/supabase";
+import { auth } from "@/lib/firebase";
 
 interface Subscription {
   plan: "free" | "pro";
@@ -22,9 +22,7 @@ interface SubscriptionContextValue {
   refresh: () => void;
 }
 
-const SubscriptionContext = createContext<SubscriptionContextValue | null>(
-  null,
-);
+const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -32,19 +30,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const load = async () => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
+      const user = auth.currentUser;
+      if (!user) {
         setLoading(false);
         return;
       }
-
+      const token = await user.getIdToken();
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/subscription/status`,
-        {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.ok) {
         const json = await res.json();
@@ -63,18 +57,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const isPro = (() => {
     if (!subscription || subscription.plan !== "pro") return false;
     if (subscription.status !== "active") return false;
-    if (
-      subscription.expires_at &&
-      new Date() > new Date(subscription.expires_at)
-    )
+    if (subscription.expires_at && new Date() > new Date(subscription.expires_at))
       return false;
     return true;
   })();
 
   return (
-    <SubscriptionContext.Provider
-      value={{ subscription, isPro, loading, refresh: load }}
-    >
+    <SubscriptionContext.Provider value={{ subscription, isPro, loading, refresh: load }}>
       {children}
     </SubscriptionContext.Provider>
   );

@@ -14,7 +14,6 @@ import (
 	"github.com/dhavisiregar/expense-manager/internal/repository"
 	"github.com/dhavisiregar/expense-manager/pkg/response"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 // PRO plan pricing (IDR)
@@ -69,7 +68,7 @@ func (h *SubscriptionHandler) CreatePayment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	orderID := fmt.Sprintf("PRO-%s-%d", userID.String()[:8], time.Now().Unix())
+	orderID := fmt.Sprintf("PRO-%s-%d", userID[:8], time.Now().Unix())
 
 	// Save pending order
 	orderIDStr := orderID
@@ -275,7 +274,7 @@ func RequirePro(subRepo repository.SubscriptionRepository) func(http.Handler) ht
 }
 
 // Helper to get user's plan for use in handlers
-func GetUserPlan(subRepo repository.SubscriptionRepository, userID uuid.UUID, r *http.Request) string {
+func GetUserPlan(subRepo repository.SubscriptionRepository, userID string, r *http.Request) string {
 	sub, _ := subRepo.GetByUserID(r.Context(), userID)
 	if sub != nil && sub.IsPro() {
 		return "pro"

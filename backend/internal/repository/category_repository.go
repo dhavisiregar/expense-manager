@@ -32,7 +32,7 @@ func (r *categoryRepo) Create(ctx context.Context, input domain.CreateCategoryIn
 	return cat, nil
 }
 
-func (r *categoryRepo) GetByID(ctx context.Context, id, userID uuid.UUID) (*domain.Category, error) {
+func (r *categoryRepo) GetByID(ctx context.Context, id uuid.UUID, userID string) (*domain.Category, error) {
 	query := `SELECT id, user_id, name, color, icon, created_at, updated_at FROM categories WHERE id = $1 AND user_id = $2`
 	cat := &domain.Category{}
 	err := r.db.QueryRow(ctx, query, id, userID).
@@ -43,7 +43,7 @@ func (r *categoryRepo) GetByID(ctx context.Context, id, userID uuid.UUID) (*doma
 	return cat, nil
 }
 
-func (r *categoryRepo) List(ctx context.Context, userID uuid.UUID) ([]domain.Category, error) {
+func (r *categoryRepo) List(ctx context.Context, userID string) ([]domain.Category, error) {
 	query := `SELECT id, user_id, name, color, icon, created_at, updated_at FROM categories WHERE user_id = $1 ORDER BY name ASC`
 	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
@@ -62,7 +62,7 @@ func (r *categoryRepo) List(ctx context.Context, userID uuid.UUID) ([]domain.Cat
 	return categories, nil
 }
 
-func (r *categoryRepo) Update(ctx context.Context, id, userID uuid.UUID, input domain.UpdateCategoryInput) (*domain.Category, error) {
+func (r *categoryRepo) Update(ctx context.Context, id uuid.UUID, userID string, input domain.UpdateCategoryInput) (*domain.Category, error) {
 	query := `
 		UPDATE categories SET
 			name = COALESCE($3, name),
@@ -81,7 +81,7 @@ func (r *categoryRepo) Update(ctx context.Context, id, userID uuid.UUID, input d
 	return cat, nil
 }
 
-func (r *categoryRepo) Delete(ctx context.Context, id, userID uuid.UUID) error {
+func (r *categoryRepo) Delete(ctx context.Context, id uuid.UUID, userID string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM categories WHERE id = $1 AND user_id = $2`, id, userID)
 	if err != nil {
 		return fmt.Errorf("delete category: %w", err)

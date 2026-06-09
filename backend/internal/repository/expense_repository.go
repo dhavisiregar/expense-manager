@@ -38,7 +38,7 @@ func (r *expenseRepo) Create(ctx context.Context, input domain.CreateExpenseInpu
 	return exp, nil
 }
 
-func (r *expenseRepo) GetByID(ctx context.Context, id, userID uuid.UUID) (*domain.Expense, error) {
+func (r *expenseRepo) GetByID(ctx context.Context, id uuid.UUID, userID string) (*domain.Expense, error) {
 	query := `
 		SELECT e.id, e.user_id, e.title, e.amount, e.category_id, e.tags, e.date, e.description, e.created_at, e.updated_at,
 		       c.id, c.name, c.color, c.icon
@@ -129,7 +129,7 @@ func (r *expenseRepo) List(ctx context.Context, filter domain.ExpenseFilter) ([]
 	return expenses, total, nil
 }
 
-func (r *expenseRepo) Update(ctx context.Context, id, userID uuid.UUID, input domain.UpdateExpenseInput) (*domain.Expense, error) {
+func (r *expenseRepo) Update(ctx context.Context, id uuid.UUID, userID string, input domain.UpdateExpenseInput) (*domain.Expense, error) {
 	query := `
 		UPDATE expenses SET
 			title = COALESCE($3, title),
@@ -156,12 +156,12 @@ func (r *expenseRepo) Update(ctx context.Context, id, userID uuid.UUID, input do
 	return exp, nil
 }
 
-func (r *expenseRepo) Delete(ctx context.Context, id, userID uuid.UUID) error {
+func (r *expenseRepo) Delete(ctx context.Context, id uuid.UUID, userID string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM expenses WHERE id = $1 AND user_id = $2`, id, userID)
 	return err
 }
 
-func (r *expenseRepo) GetDashboardSummary(ctx context.Context, userID uuid.UUID) (*domain.DashboardSummary, error) {
+func (r *expenseRepo) GetDashboardSummary(ctx context.Context, userID string) (*domain.DashboardSummary, error) {
 	summary := &domain.DashboardSummary{}
 
 	r.db.QueryRow(ctx, `SELECT COALESCE(SUM(amount),0), COUNT(*) FROM expenses WHERE user_id=$1`, userID).
@@ -244,7 +244,7 @@ func (r *expenseRepo) GetDashboardSummary(ctx context.Context, userID uuid.UUID)
 	return summary, nil
 }
 
-func (r *expenseRepo) getCategoryByID(ctx context.Context, id, userID uuid.UUID) (*domain.Category, error) {
+func (r *expenseRepo) getCategoryByID(ctx context.Context, id uuid.UUID, userID string) (*domain.Category, error) {
 	cat := &domain.Category{}
 	err := r.db.QueryRow(ctx, `SELECT id, name, color, icon FROM categories WHERE id = $1 AND user_id = $2`, id, userID).
 		Scan(&cat.ID, &cat.Name, &cat.Color, &cat.Icon)

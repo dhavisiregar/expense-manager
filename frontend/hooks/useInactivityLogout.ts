@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
-// Log out after this many milliseconds of inactivity
 const INACTIVITY_LIMIT_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const EVENTS = [
@@ -22,7 +22,7 @@ export function useInactivityLogout() {
   const lastActiveKey = "duitflow_last_active";
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     router.replace("/auth");
   };
 
@@ -33,14 +33,12 @@ export function useInactivityLogout() {
   };
 
   useEffect(() => {
-    // Check on mount — if last active was too long ago, log out immediately
     const last = parseInt(localStorage.getItem(lastActiveKey) || "0", 10);
     if (last && Date.now() - last > INACTIVITY_LIMIT_MS) {
       logout();
       return;
     }
 
-    // Start the timer and listen for activity
     reset();
     EVENTS.forEach((e) => window.addEventListener(e, reset, { passive: true }));
 

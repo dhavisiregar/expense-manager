@@ -2,8 +2,7 @@ package middleware
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/dhavisiregar/expense-manager/pkg/response"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 )
 
 type contextKey string
@@ -38,59 +36,37 @@ func Auth(next http.Handler) http.Handler {
 
 		tokenStr := parts[1]
 
-		// Peek at the header to determine signing algorithm
 		alg, kid, err := peekTokenHeader(tokenStr)
 		if err != nil {
 			response.Error(w, http.StatusUnauthorized, "malformed token")
 			return
 		}
 
+		projectID := os.Getenv("FIREBASE_PROJECT_ID")
+		if projectID == "" {
+			response.Error(w, http.StatusInternalServerError, "missing FIREBASE_PROJECT_ID")
+			return
+		}
+
 		var token *jwt.Token
 
 		switch alg {
-		case "HS256":
-			secret := os.Getenv("SUPABASE_JWT_SECRET")
-			if secret == "" {
-				response.Error(w, http.StatusInternalServerError, "missing SUPABASE_JWT_SECRET")
-				return
-			}
-			token, err = jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-				}
-				return []byte(secret), nil
-			})
-
-		case "ES256":
-			jwksURL := os.Getenv("SUPABASE_JWKS_URL")
-			if jwksURL == "" {
-				// Build default JWKS URL from Supabase project URL
-				projectURL := os.Getenv("NEXT_PUBLIC_SUPABASE_URL")
-				if projectURL == "" {
-					supabaseURL := os.Getenv("SUPABASE_URL")
-					if supabaseURL != "" {
-						projectURL = supabaseURL
-					}
-				}
-				if projectURL != "" {
-					jwksURL = projectURL + "/auth/v1/.well-known/jwks.json"
-				}
-			}
-			if jwksURL == "" {
-				response.Error(w, http.StatusInternalServerError, "missing SUPABASE_URL for ES256 verification")
-				return
-			}
-			pubKey, keyErr := fetchECPublicKey(jwksURL, kid)
+		case "RS256":
+			jwksURL := "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"
+			pubKey, keyErr := fetchRSAPublicKey(jwksURL, kid)
 			if keyErr != nil {
 				response.Error(w, http.StatusUnauthorized, "could not fetch signing key")
 				return
 			}
 			token, err = jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-				if _, ok := t.Method.(*jwt.SigningMethodECDSA); !ok {
+				if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 					return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 				}
 				return pubKey, nil
-			})
+			},
+				jwt.WithAudience(projectID),
+				jwt.WithIssuer("https://securetoken.google.com/"+projectID),
+			)
 
 		default:
 			response.Error(w, http.StatusUnauthorized, fmt.Sprintf("unsupported algorithm: %s", alg))
@@ -114,23 +90,16 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, err := uuid.Parse(sub)
-		if err != nil {
-			response.Error(w, http.StatusUnauthorized, "invalid user id in token")
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), UserIDKey, userID)
+		ctx := context.WithValue(r.Context(), UserIDKey, sub)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func GetUserID(ctx context.Context) (uuid.UUID, bool) {
-	id, ok := ctx.Value(UserIDKey).(uuid.UUID)
+func GetUserID(ctx context.Context) (string, bool) {
+	id, ok := ctx.Value(UserIDKey).(string)
 	return id, ok
 }
 
-// peekTokenHeader decodes the JWT header without verifying the signature.
 func peekTokenHeader(tokenStr string) (alg, kid string, err error) {
 	parts := strings.Split(tokenStr, ".")
 	if len(parts) != 3 {
@@ -149,8 +118,7 @@ func peekTokenHeader(tokenStr string) (alg, kid string, err error) {
 	return alg, kid, nil
 }
 
-// fetchECPublicKey fetches the JWKS endpoint and returns the EC public key for the given kid.
-func fetchECPublicKey(jwksURL, kid string) (*ecdsa.PublicKey, error) {
+func fetchRSAPublicKey(jwksURL, kid string) (*rsa.PublicKey, error) {
 	resp, err := http.Get(jwksURL)
 	if err != nil {
 		return nil, fmt.Errorf("fetch JWKS: %w", err)
@@ -159,12 +127,10 @@ func fetchECPublicKey(jwksURL, kid string) (*ecdsa.PublicKey, error) {
 
 	var jwks struct {
 		Keys []struct {
-			Kid string `json:"kid"`
-			Kty string `json:"kty"`
-			Crv string `json:"crv"`
-			X   string `json:"x"`
-			Y   string `json:"y"`
-			// Also support x5c (certificate chain)
+			Kid string   `json:"kid"`
+			Kty string   `json:"kty"`
+			N   string   `json:"n"`
+			E   string   `json:"e"`
 			X5c []string `json:"x5c"`
 		} `json:"keys"`
 	}
@@ -176,19 +142,23 @@ func fetchECPublicKey(jwksURL, kid string) (*ecdsa.PublicKey, error) {
 		if kid != "" && key.Kid != kid {
 			continue
 		}
-		if key.Kty == "EC" && key.X != "" && key.Y != "" {
-			xBytes, err := base64.RawURLEncoding.DecodeString(key.X)
+		// Parse from n/e fields
+		if key.Kty == "RSA" && key.N != "" && key.E != "" {
+			nBytes, err := base64.RawURLEncoding.DecodeString(key.N)
 			if err != nil {
 				continue
 			}
-			yBytes, err := base64.RawURLEncoding.DecodeString(key.Y)
+			eBytes, err := base64.RawURLEncoding.DecodeString(key.E)
 			if err != nil {
 				continue
 			}
-			pub := &ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     new(big.Int).SetBytes(xBytes),
-				Y:     new(big.Int).SetBytes(yBytes),
+			e := 0
+			for _, b := range eBytes {
+				e = e<<8 + int(b)
+			}
+			pub := &rsa.PublicKey{
+				N: new(big.Int).SetBytes(nBytes),
+				E: e,
 			}
 			return pub, nil
 		}
@@ -202,7 +172,7 @@ func fetchECPublicKey(jwksURL, kid string) (*ecdsa.PublicKey, error) {
 			if err != nil {
 				continue
 			}
-			if pub, ok := cert.PublicKey.(*ecdsa.PublicKey); ok {
+			if pub, ok := cert.PublicKey.(*rsa.PublicKey); ok {
 				return pub, nil
 			}
 		}
