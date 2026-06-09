@@ -24,7 +24,7 @@ export default function AuthPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [success, setSuccess] = useState(""); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   useEffect(() => {
     if (user) router.replace("/dashboard");
@@ -36,18 +36,13 @@ export default function AuthPage() {
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-      const token = await userCredential.user.getIdToken();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      };
-      const existing = await fetch(`${apiUrl}/categories`, { headers }).catch(() => null);
-      if (existing?.ok) {
-        const json = await existing.json().catch(() => null);
-        if ((json?.data?.length ?? 0) === 0) {
-          await fetch(`${apiUrl}/categories/seed`, { method: "POST", headers }).catch(() => {});
-        }
+      const isNewUser = (userCredential as any)._tokenResponse?.isNewUser === true;
+      if (isNewUser) {
+        const token = await userCredential.user.getIdToken();
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/seed`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        }).catch(() => {});
       }
     } catch (e: any) {
       if (e.code !== "auth/popup-closed-by-user") {
@@ -73,26 +68,14 @@ export default function AuthPage() {
     setLoading(true);
     try {
       if (mode === "register") {
-        await createUserWithEmailAndPassword(auth, email, password);
-        setSuccess("Account created! You can now sign in.");
-        setMode("login");
-      } else {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const token = await userCredential.user.getIdToken();
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const headers = {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        };
-        // Seed default categories if user has none
-        const existing = await fetch(`${apiUrl}/categories`, { headers }).catch(() => null);
-        if (existing?.ok) {
-          const json = await existing.json().catch(() => null);
-          const count = json?.data?.length ?? 0;
-          if (count === 0) {
-            await fetch(`${apiUrl}/categories/seed`, { method: "POST", headers }).catch(() => {});
-          }
-        }
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/seed`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        }).catch(() => {});
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (e: any) {
       const msg = e.code
