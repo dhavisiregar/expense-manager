@@ -7,6 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 interface Subscription {
@@ -51,7 +52,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    load();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        load();
+      } else {
+        setSubscription(null);
+        setLoading(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const isPro = (() => {
