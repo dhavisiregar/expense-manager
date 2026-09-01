@@ -37,17 +37,20 @@ func main() {
 	categoryRepo := repository.NewCategoryRepository(db)
 	incomeRepo := repository.NewIncomeRepository(db)
 	subscriptionRepo := repository.NewSubscriptionRepository(db)
+	budgetRepo := repository.NewBudgetRepository(db)
 
 	// Services
 	expenseSvc := service.NewExpenseService(expenseRepo)
 	categorySvc := service.NewCategoryService(categoryRepo)
 	incomeSvc := service.NewIncomeService(incomeRepo)
+	budgetSvc := service.NewBudgetService(budgetRepo, categoryRepo)
 
 	// Handlers
 	expenseHandler := handler.NewExpenseHandler(expenseSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc, subscriptionRepo)
 	incomeHandler := handler.NewIncomeHandler(incomeSvc)
 	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionRepo)
+	budgetHandler := handler.NewBudgetHandler(budgetSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -80,6 +83,7 @@ func main() {
 		r.Route("/categories", categoryHandler.Routes())
 		r.Route("/incomes", incomeHandler.Routes())
 		r.Route("/subscription", subscriptionHandler.Routes())
+		r.Route("/budgets", budgetHandler.Routes())
 	})
 
 	port := os.Getenv("PORT")

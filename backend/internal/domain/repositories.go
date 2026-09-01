@@ -30,3 +30,13 @@ type IncomeRepository interface {
 	Update(ctx context.Context, id uuid.UUID, userID string, input UpdateIncomeInput) (*Income, error)
 	Delete(ctx context.Context, id uuid.UUID, userID string) error
 }
+
+type BudgetRepository interface {
+	Create(ctx context.Context, input CreateBudgetInput) (*Budget, error)
+	GetByID(ctx context.Context, id uuid.UUID, userID string) (*Budget, error)
+	ListByPeriod(ctx context.Context, userID string, month, year int16) ([]Budget, error)
+	Update(ctx context.Context, id uuid.UUID, userID string, input UpdateBudgetInput) (*Budget, error)
+	Delete(ctx context.Context, id uuid.UUID, userID string) error
+	// GetSpentByCategory returns total expense amount per category for a period.
+	GetSpentByCategory(ctx context.Context, userID string, month, year int16) (map[uuid.UUID]float64, error)
+}

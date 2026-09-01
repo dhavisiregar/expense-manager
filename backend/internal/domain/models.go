@@ -162,3 +162,43 @@ func (s *Subscription) IsPro() bool {
 	}
 	return true
 }
+
+// Budget is a per-user, per-category spending limit for a given month/year.
+type Budget struct {
+	ID                uuid.UUID `json:"id"`
+	UserID            string    `json:"user_id"`
+	CategoryID        uuid.UUID `json:"category_id"`
+	Month             int16     `json:"month"`
+	Year              int16     `json:"year"`
+	LimitAmount       float64   `json:"limit_amount"`
+	AlertThresholdPct int16     `json:"alert_threshold_pct"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+}
+
+// BudgetStatus is a computed view: budget + actual spend + alert state.
+// This is what the budgets page / alert UI consumes, not the raw row.
+type BudgetStatus struct {
+	Budget
+	CategoryName string  `json:"category_name"`
+	CategoryIcon string  `json:"category_icon"`
+	Spent        float64 `json:"spent"`
+	Remaining    float64 `json:"remaining"`
+	UsagePct     float64 `json:"usage_pct"`
+	IsOverLimit  bool    `json:"is_over_limit"`
+	IsNearLimit  bool    `json:"is_near_limit"` // usage_pct >= alert_threshold_pct
+}
+
+type CreateBudgetInput struct {
+	UserID            string    `json:"user_id"`
+	CategoryID        uuid.UUID `json:"category_id"`
+	Month             int16     `json:"month"`
+	Year              int16     `json:"year"`
+	LimitAmount       float64   `json:"limit_amount"`
+	AlertThresholdPct int16     `json:"alert_threshold_pct"`
+}
+
+type UpdateBudgetInput struct {
+	LimitAmount       *float64 `json:"limit_amount"`
+	AlertThresholdPct *int16   `json:"alert_threshold_pct"`
+}
