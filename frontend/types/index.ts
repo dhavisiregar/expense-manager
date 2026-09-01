@@ -127,3 +127,38 @@ export interface IncomeFilter {
   page?: number;
   page_size?: number;
 }
+
+export interface Budget {
+  id: string;
+  user_id: string;
+  category_id: string;
+  month: number;
+  year: number;
+  limit_amount: number;
+  alert_threshold_pct: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BudgetStatus extends Budget {
+  category_name: string;
+  category_icon: string;
+  spent: number;
+  remaining: number;
+  usage_pct: number;
+  is_over_limit: boolean;
+  is_near_limit: boolean;
+}
+
+export interface CreateBudgetInput {
+  category_id: string;
+  month: number;
+  year: number;
+  limit_amount: number;
+  alert_threshold_pct?: number;
+}
+
+export interface UpdateBudgetInput {
+  limit_amount?: number;
+  alert_threshold_pct?: number;
+}

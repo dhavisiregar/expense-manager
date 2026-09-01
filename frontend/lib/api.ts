@@ -1,6 +1,9 @@
 import {
   APIResponse,
+  Budget,
+  BudgetStatus,
   Category,
+  CreateBudgetInput,
   CreateCategoryInput,
   CreateExpenseInput,
   CreateIncomeInput,
@@ -10,6 +13,7 @@ import {
   Income,
   IncomeFilter,
   PaginationMeta,
+  UpdateBudgetInput,
   UpdateExpenseInput,
   UpdateIncomeInput,
 } from "@/types";
@@ -137,4 +141,33 @@ export async function updateIncome(id: string, input: UpdateIncomeInput) {
 
 export async function deleteIncome(id: string) {
   return request<{ message: string }>(`/incomes/${id}`, { method: "DELETE" });
+}
+
+// ─── Budgets ─────────────────────────────────────────────────
+export async function getBudgets(month?: number, year?: number) {
+  const params = new URLSearchParams();
+  if (month) params.set("month", String(month));
+  if (year) params.set("year", String(year));
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return request<BudgetStatus[]>(`/budgets${qs}`);
+}
+
+export async function createBudget(input: CreateBudgetInput) {
+  return request<Budget>("/budgets", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateBudget(id: string, input: UpdateBudgetInput) {
+  return request<Budget>(`/budgets/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteBudget(id: string) {
+  return request<{ message: string }>(`/budgets/${id}`, {
+    method: "DELETE",
+  });
 }

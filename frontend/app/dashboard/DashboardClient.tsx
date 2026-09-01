@@ -30,6 +30,7 @@ import { getDashboard } from "@/lib/api";
 import { useSubscription } from "@/components/ui/SubscriptionProvider";
 import { ProGate } from "@/components/ui/Progate";
 import { errorAlert } from "@/lib/alert";
+import { useBudgets } from "@/hooks/useBudgets";
 
 function StatCard({
   label,
@@ -117,6 +118,8 @@ export function DashboardClient({
     initialSummary,
   );
   const [loading, setLoading] = useState(true);
+  // Fires an in-app toast if any category is near/over its budget this month.
+  useBudgets({ notifyOnLoad: true });
 
   useEffect(() => {
     getDashboard()

@@ -15,6 +15,7 @@ import {
   X,
   BarChart2,
   Crown,
+  PiggyBank,
 } from "lucide-react";
 import { useSubscription } from "@/components/ui/SubscriptionProvider";
 import { useAuth } from "@/components/ui/AuthProvider";
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/income", label: "Income", icon: TrendingUp },
+  { href: "/budgets", label: "Budgets", icon: PiggyBank },
   { href: "/report", label: "Report", icon: BarChart2 },
   { href: "/categories", label: "Categories", icon: Tag },
 ];
